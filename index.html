@@ -2291,6 +2291,20 @@ function TRACKERS(SHEETS){
     return JSON.stringify(out);
   }
 
+  /* Older iOS and any non-secure origin have no clipboard API: select the text
+     so one long-press → Copy finishes the job. */
+  function selectFallback(box){
+    try{
+      box.focus();
+      box.setSelectionRange(0, box.value.length);
+      var ok = false;
+      try{ ok = document.execCommand("copy"); }catch(e){}
+      bkSay(ok ? "copied — paste it on the other device" : "selected — press Copy on your keyboard or long-press");
+    }catch(e){
+      bkSay("select the text above and copy it", true);
+    }
+  }
+
   function bkSay(msg, warn){
     var m = document.getElementById("bkmsg");
     if(!m) return;
@@ -2303,6 +2317,7 @@ function TRACKERS(SHEETS){
     var h = '<h2>Backup</h2><p class="cap">Carry both characters to another device</p>'
       + '<div class="rest-row">'
       +   '<button data-bk="toggle">' + (open ? "Hide data" : "Show data") + '</button>'
+      +   (open ? '<button class="addbtn" data-bk="copy">Copy</button>' : '')
       +   (open ? '<button data-bk="apply">Apply pasted data</button>' : '')
       + '</div>';
     if(open) h += '<textarea class="notesbox" id="bkbox" rows="6" spellcheck="false" aria-label="Backup data"></textarea>';
@@ -2337,6 +2352,22 @@ function TRACKERS(SHEETS){
       e.preventDefault();
       var what = t.getAttribute("data-bk");
       if(what === "toggle"){ renderBackup(!document.getElementById("bkbox")); return; }
+
+      if(what === "copy"){
+        var src = document.getElementById("bkbox");
+        if(!src) return;
+        /* selecting a long JSON line by hand on a phone is miserable */
+        try{
+          if(navigator.clipboard && navigator.clipboard.writeText){
+            navigator.clipboard.writeText(src.value).then(function(){
+              bkSay("copied — paste it on the other device");
+            })["catch"](function(){ selectFallback(src); });
+            return;
+          }
+        }catch(err){}
+        selectFallback(src);
+        return;
+      }
       if(what === "apply"){
         var box = document.getElementById("bkbox");
         if(!box) return;

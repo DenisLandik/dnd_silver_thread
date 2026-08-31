@@ -547,6 +547,19 @@ li.exp .sk-val{color:var(--gold);font-weight:600}
   background:transparent;border-color:var(--rule-soft);
   color:var(--ink-3);cursor:default;
 }
+.gatebar{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  border:1px solid var(--rule);border-left:3px solid var(--gold);
+  border-radius:3px;padding:11px 13px;margin:0 0 14px;
+  background:var(--paper);
+}
+.gatebar.open{border-left-color:var(--red)}
+.gatestate{
+  flex:1 1 auto;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);
+}
+.gatebar .addbtn{flex:0 0 auto}
 .gatebox{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
 .gatein{
   flex:1 1 140px;min-width:0;height:44px;padding:6px 10px;
@@ -1929,9 +1942,16 @@ function TRACKERS(SHEETS){
     var FULL  = {str:"Strength",dex:"Dexterity",con:"Constitution",int:"Intelligence",wis:"Wisdom",cha:"Charisma"};
 
     function gateBar(){
-      if(!gate.hash) return '<div class="packbar"><button class="editbtn" data-gate="set">Set a password</button></div>';
-      return '<div class="packbar"><button class="editbtn" data-gate="' + (locked ? "ask" : "lock") + '">'
-           + (locked ? "Edit" : "Save &amp; lock") + '</button></div>';
+      if(!gate.hash){
+        return '<div class="gatebar"><span class="gatestate">Scores are read-only</span>'
+             + '<button class="addbtn" data-gate="set">Set a password</button></div>';
+      }
+      if(locked){
+        return '<div class="gatebar"><span class="gatestate">Scores are locked</span>'
+             + '<button class="addbtn" data-gate="ask">Unlock to edit</button></div>';
+      }
+      return '<div class="gatebar open"><span class="gatestate">Unlocked &mdash; scores can be changed</span>'
+           + '<button class="addbtn" data-gate="lock">Save &amp; lock</button></div>';
     }
 
     function gateForm(mode){

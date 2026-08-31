@@ -543,6 +543,16 @@ li.exp .sk-val{color:var(--gold);font-weight:600}
   margin-top:5px;padding:5px 2px;font-size:14px;
 }
 .abin:hover{border-color:var(--ink-3)}
+.abin.lockedin{
+  background:transparent;border-color:var(--rule-soft);
+  color:var(--ink-3);cursor:default;
+}
+.gatebox{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.gatein{
+  flex:1 1 140px;min-width:0;height:44px;padding:6px 10px;
+  font-family:"Newsreader",Georgia,serif;font-size:16.5px;color:var(--ink);
+  background:var(--paper);border:1px solid var(--rule);border-radius:3px;
+}
 .jsdiag{
   font-family:"IBM Plex Mono",ui-monospace,monospace;
   font-size:13px;line-height:1.5;color:var(--red);
@@ -1743,9 +1753,45 @@ function TRACKERS(SHEETS){
   var STATE = {}, views = [], chips = [];
   var api = null, timer = null, dirty = false;
 
+  /* gate: one password for the whole page, kept as a hash.
+     Populated below, once the state block has been parsed. */
+  var gate = {alg:null, hash:null};
+  var locked = true;
+
+  function basicHash(s){
+    var a = 5381, b = 52711, i;
+    for(i=0;i<s.length;i++){ a = (a * 33 ^ s.charCodeAt(i)) >>> 0; b = (b * 31 ^ s.charCodeAt(i)) >>> 0; }
+    return ("00000000" + a.toString(16)).slice(-8) + ("00000000" + b.toString(16)).slice(-8);
+  }
+
+  /* SHA-256 where the browser offers it (https), a weak fallback otherwise */
+  function hashPw(pw){
+    var salted = "silver-thread:" + pw;
+    try{
+      if(window.crypto && window.crypto.subtle && window.TextEncoder){
+        return window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(salted)).then(function(buf){
+          var v = new Uint8Array(buf), out = "";
+          for(var i=0;i<v.length;i++) out += ("0" + v[i].toString(16)).slice(-2);
+          return {alg:"sha256", hash:out};
+        })["catch"](function(){ return {alg:"basic", hash:basicHash(salted)}; });
+      }
+    }catch(e){}
+    return {then:function(cb){ return {then:function(){}, "catch":function(){}, value:cb({alg:"basic", hash:basicHash(salted)})}; },
+            "catch":function(){ return this; }};
+  }
+
+  function refreshAbilAll(){
+    for(var j=0;j<views.length;j++) if(views[j].refreshAbil) views[j].refreshAbil();
+  }
+
   var rawAll = {};
   var stateEl = document.getElementById("sheet-state");
   if(stateEl){ try{ rawAll = JSON.parse(stateEl.textContent) || {}; }catch(e){ rawAll = {}; } }
+
+  if(rawAll.__gate && typeof rawAll.__gate === "object"){
+    gate.alg  = rawAll.__gate.alg || null;
+    gate.hash = rawAll.__gate.hash || null;
+  }
 
   function say(msg, warn){
     for(var i=0;i<chips.length;i++){
@@ -1882,14 +1928,36 @@ function TRACKERS(SHEETS){
     var SHORT = {str:"Str",dex:"Dex",con:"Con",int:"Int",wis:"Wis",cha:"Cha"};
     var FULL  = {str:"Strength",dex:"Dexterity",con:"Constitution",int:"Intelligence",wis:"Wisdom",cha:"Charisma"};
 
+    function gateBar(){
+      if(!gate.hash) return '<div class="packbar"><button class="editbtn" data-gate="set">Set a password</button></div>';
+      return '<div class="packbar"><button class="editbtn" data-gate="' + (locked ? "ask" : "lock") + '">'
+           + (locked ? "Edit" : "Save &amp; lock") + '</button></div>';
+    }
+
+    function gateForm(mode){
+      var h = '<div class="packbar"><button class="editbtn" data-gate="cancel">Cancel</button></div>'
+        + '<div class="gatebox">'
+        + '<input class="gatein" id="gate1-' + ns + '" type="password" autocomplete="new-password" placeholder="' + (mode === "set" ? "Choose a password" : "Password") + '" aria-label="Password">';
+      if(mode === "set"){
+        h += '<input class="gatein" id="gate2-' + ns + '" type="password" autocomplete="new-password" placeholder="Repeat it" aria-label="Repeat password">';
+      }
+      h += '<button class="addbtn" data-gate="' + (mode === "set" ? "save" : "try") + '">'
+        + (mode === "set" ? "Save" : "Unlock") + '</button></div>'
+        + '<p class="savechip" id="gatemsg-' + ns + '"></p>';
+      abilEl.innerHTML = h;
+      var f = document.getElementById("gate1-" + ns);
+      if(f) f.focus();
+    }
+
     function renderAbil(){
       if(!abilEl) return;
-      var h = '<div class="abilities">';
+      var h = gateBar() + '<div class="abilities">';
       for(var j=0;j<ORDER.length;j++){
         var k = ORDER[j];
         h += '<div class="ab"><span class="k">' + SHORT[k] + '</span>'
           +  '<span class="m">' + fmt(mod(S.scores[k])) + '</span>'
-          +  '<input class="abin" type="number" inputmode="numeric" min="1" max="30" data-ab="' + k + '" value="' + S.scores[k] + '" aria-label="' + SHORT[k] + ' score"></div>';
+          +  '<input class="abin' + (locked ? " lockedin" : "") + '" type="number" inputmode="numeric" min="1" max="30"'
+          +  (locked ? " readonly" : "") + ' data-ab="' + k + '" value="' + S.scores[k] + '" aria-label="' + SHORT[k] + ' score"></div>';
       }
       abilEl.innerHTML = h + '</div>';
     }
@@ -2061,10 +2129,69 @@ function TRACKERS(SHEETS){
       });
     }
 
+    function gateMsg(t, warn){
+      var m = document.getElementById("gatemsg-" + ns);
+      if(m){ m.textContent = t || ""; m.className = warn ? "savechip warn" : "savechip"; }
+    }
+
     if(abilEl){
+      abilEl.addEventListener("click", function(e){
+        var t = e.target;
+        while(t && t !== abilEl && !(t.getAttribute && t.hasAttribute("data-gate"))) t = t.parentNode;
+        if(!t || t === abilEl) return;
+        e.preventDefault();
+        var what = t.getAttribute("data-gate");
+
+        if(what === "set")    return gateForm("set");
+        if(what === "ask")    return gateForm("ask");
+        if(what === "cancel") return renderAbil();
+
+        if(what === "lock"){
+          locked = true;
+          refreshAbilAll();
+          if(timer){ clearTimeout(timer); commit(); }
+          return;
+        }
+
+        var pw = (document.getElementById("gate1-" + ns) || {}).value || "";
+        if(!pw){ gateMsg("enter a password", true); return; }
+
+        if(what === "save"){
+          var pw2 = (document.getElementById("gate2-" + ns) || {}).value || "";
+          if(pw !== pw2){ gateMsg("the two entries do not match", true); return; }
+          if(pw.length < 4){ gateMsg("use at least 4 characters", true); return; }
+          hashPw(pw).then(function(g){
+            gate.alg = g.alg; gate.hash = g.hash;
+            locked = false;
+            refreshAbilAll();
+            touched(200);
+          });
+          return;
+        }
+
+        if(what === "try"){
+          hashPw(pw).then(function(g){
+            if(g.alg === gate.alg && g.hash === gate.hash){
+              locked = false;
+              refreshAbilAll();
+            }else{
+              gateMsg("that is not the password", true);
+            }
+          });
+        }
+      });
+
+      abilEl.addEventListener("keydown", function(e){
+        if(e.key !== "Enter") return;
+        if(!e.target || e.target.className.indexOf("gatein") === -1) return;
+        e.preventDefault();
+        var btn = abilEl.querySelector('[data-gate="save"],[data-gate="try"]');
+        if(btn) btn.click();
+      });
+
       abilEl.addEventListener("input", function(e){
         var k = e.target && e.target.getAttribute && e.target.getAttribute("data-ab");
-        if(!k) return;
+        if(!k || locked) return;
         var v = num(e.target.value);
         if(v < 1) v = 1;
         if(v > 30) v = 30;
@@ -2126,6 +2253,7 @@ function TRACKERS(SHEETS){
       id: SHEET.id,
       state: function(){ return S; },
       render: renderAll,
+      refreshAbil: function(){ if(AB) renderAbilities(); },
       resize: function(){ autosize(el("notesbox")); },
       toStatic: function(){
         var keep = {
@@ -2134,6 +2262,7 @@ function TRACKERS(SHEETS){
           purse:   purseEl ? purseEl.innerHTML : null,
           notes:   notesEl ? notesEl.innerHTML : null
         };
+        if(AB){ locked = true; renderAbilities(); }
         if(host)    host.innerHTML    = SHEET.placeholder;
         if(packEl)  packEl.innerHTML  = itemsHTML(true);
         if(purseEl) purseEl.innerHTML = purseStatic();
@@ -2158,6 +2287,7 @@ function TRACKERS(SHEETS){
   function snapshot(){
     var out = {};
     for(var j=0;j<views.length;j++) out[views[j].id] = views[j].state();
+    if(gate.hash) out.__gate = gate;
     return JSON.stringify(out);
   }
 
@@ -2187,10 +2317,16 @@ function TRACKERS(SHEETS){
 
   function rebuildAll(raw){
     rawAll = raw;
+    if(raw.__gate && typeof raw.__gate === "object"){
+      gate.alg = raw.__gate.alg || null;
+      gate.hash = raw.__gate.hash || null;
+    }
+    locked = true;
     views = [];
     chips = [];
     for(var j=0;j<SHEETS.length;j++) views.push(makeView(SHEETS[j]));
     for(j=0;j<views.length;j++) views[j].render();
+    renderBackup(!!document.getElementById("bkbox"));
   }
 
   if(backupEl){
@@ -2268,6 +2404,7 @@ function TRACKERS(SHEETS){
     timer = null;
     var out = {};
     for(var j=0;j<views.length;j++) out[views[j].id] = views[j].state();
+    if(gate.hash) out.__gate = gate;
     var payload = JSON.stringify(out);
     if(api){
       var doc = buildDoc(payload);
@@ -2304,13 +2441,7 @@ function TRACKERS(SHEETS){
   function offline(){
     try{
       var local = localStorage.getItem("sheets-combined");
-      if(local){
-        rawAll = JSON.parse(local) || {};
-        views = [];
-        chips = [];
-        for(var j=0;j<SHEETS.length;j++) views.push(makeView(SHEETS[j]));
-        for(j=0;j<views.length;j++) views[j].render();
-      }
+      if(local) rebuildAll(JSON.parse(local) || {});   /* also restores the gate */
     }catch(e){}
     say("changes save on this device only");
   }

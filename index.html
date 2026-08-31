@@ -547,6 +547,29 @@ li.exp .sk-val{color:var(--gold);font-weight:600}
   background:transparent;border-color:var(--rule-soft);
   color:var(--ink-3);cursor:default;
 }
+/* page-level lock, top right */
+.pagetop{padding-top:12px}
+.lockrow{
+  display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;
+}
+.lockstate{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);
+}
+.lockrow.open .lockstate{color:var(--red);font-weight:600}
+.lockbtn{
+  appearance:none;border:1px solid var(--rule);background:transparent;color:var(--ink-2);
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  padding:9px 13px;border-radius:2px;cursor:pointer;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.lockbtn:active{background:var(--rule-soft)}
+.lockrow .gatein{flex:1 1 130px}
+.pagetop .savechip{text-align:right;margin-top:8px}
+button[disabled]{opacity:.45;cursor:default}
+.tpip[disabled]{opacity:1}
+.tpip[disabled] i{opacity:.45}
 .gatebar{
   display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   border:1px solid var(--rule);border-left:3px solid var(--gold);
@@ -670,6 +693,9 @@ li.exp .sk-val{color:var(--gold);font-weight:600}
 <div class="wrap">
   <input class="csw" type="radio" name="who" id="c-a" checked>
   <input class="csw" type="radio" name="who" id="c-m">
+  <div id="lock" class="pagetop">
+    <div class="lockrow"><span class="lockstate">Read-only</span></div>
+  </div>
   <nav class="who" aria-label="Character">
     <label for="c-a">Alaricks<small>Dragonborn Pugilist</small></label>
     <label for="c-m">Mina<small>Halfling Bard</small></label>
@@ -1793,8 +1819,94 @@ function TRACKERS(SHEETS){
             "catch":function(){ return this; }};
   }
 
-  function refreshAbilAll(){
-    for(var j=0;j<views.length;j++) if(views[j].refreshAbil) views[j].refreshAbil();
+  var lockEl = document.getElementById("lock");
+
+  function lockMsg(t, warn){
+    var m = document.getElementById("lockmsg");
+    if(m){ m.textContent = t || ""; m.className = warn ? "savechip warn" : "savechip"; }
+  }
+
+  function renderLock(form){
+    if(!lockEl) return;
+    var h2;
+    if(form){
+      h2 = '<div class="lockrow">'
+        + '<input class="gatein" id="lockpw" type="password" autocomplete="new-password" placeholder="'
+        + (gate.hash ? "Password" : "Choose a password") + '" aria-label="Password">'
+        + (gate.hash ? '' : '<input class="gatein" id="lockpw2" type="password" autocomplete="new-password" placeholder="Repeat it" aria-label="Repeat password">')
+        + '<button class="addbtn" data-lock="' + (gate.hash ? "try" : "save") + '">'
+        + (gate.hash ? "Unlock" : "Save") + '</button>'
+        + '<button class="lockbtn" data-lock="cancel">Cancel</button>'
+        + '</div><p class="savechip" id="lockmsg"></p>';
+    }else if(locked){
+      h2 = '<div class="lockrow"><span class="lockstate">Read-only</span>'
+        + '<button class="lockbtn" data-lock="open">' + (gate.hash ? "Unlock to edit" : "Set a password") + '</button></div>';
+    }else{
+      h2 = '<div class="lockrow open"><span class="lockstate">Editing</span>'
+        + '<button class="addbtn" data-lock="lock">Save &amp; lock</button></div>';
+    }
+    lockEl.innerHTML = h2;
+    if(form){ var f = document.getElementById("lockpw"); if(f) f.focus(); }
+  }
+
+  function renderAllViews(){
+    chips = [];
+    for(var j=0;j<views.length;j++) views[j].render();
+    renderBackup(!!document.getElementById("bkbox"));
+    renderLock(false);
+  }
+
+  if(lockEl){
+    lockEl.addEventListener("click", function(e){
+      var t = e.target;
+      while(t && t !== lockEl && !(t.getAttribute && t.hasAttribute("data-lock"))) t = t.parentNode;
+      if(!t || t === lockEl) return;
+      e.preventDefault();
+      var what = t.getAttribute("data-lock");
+
+      if(what === "open")   return renderLock(true);
+      if(what === "cancel") return renderLock(false);
+      if(what === "lock"){
+        locked = true;
+        renderAllViews();
+        if(timer){ clearTimeout(timer); commit(); }
+        return;
+      }
+
+      var pw = (document.getElementById("lockpw") || {}).value || "";
+      if(!pw){ lockMsg("enter a password", true); return; }
+
+      if(what === "save"){
+        var pw2 = (document.getElementById("lockpw2") || {}).value || "";
+        if(pw !== pw2){ lockMsg("the two entries do not match", true); return; }
+        if(pw.length < 4){ lockMsg("use at least 4 characters", true); return; }
+        hashPw(pw).then(function(g){
+          gate.alg = g.alg; gate.hash = g.hash;
+          locked = false;
+          renderAllViews();
+          touched(200);
+        });
+        return;
+      }
+
+      if(what === "try"){
+        hashPw(pw).then(function(g){
+          if(g.alg === gate.alg && g.hash === gate.hash){
+            locked = false;
+            renderAllViews();
+          }else{
+            lockMsg("that is not the password", true);
+          }
+        });
+      }
+    });
+
+    lockEl.addEventListener("keydown", function(e){
+      if(e.key !== "Enter" || !e.target || e.target.className.indexOf("gatein") === -1) return;
+      e.preventDefault();
+      var b = lockEl.querySelector('[data-lock="save"],[data-lock="try"]');
+      if(b) b.click();
+    });
   }
 
   var rawAll = {};
@@ -1886,15 +1998,15 @@ function TRACKERS(SHEETS){
       if(!host) return;
       var h = '<h2>Session</h2><p class="cap">Tap a pip to spend &middot; tap it again to restore</p>'
         + '<div class="hpbox">'
-        +   '<button class="hpbtn" data-d="-1" aria-label="Lose a hit point">&minus;</button>'
-        +   '<input class="hpin" id="hpin-' + ns + '" type="number" inputmode="numeric" min="0" max="' + SHEET.hpMax + '" value="' + S.hp + '" aria-label="Current hit points">'
+        +   '<button class="hpbtn" data-d="-1"' + (locked ? " disabled" : "") + ' aria-label="Lose a hit point">&minus;</button>'
+        +   '<input class="hpin" id="hpin-' + ns + '" type="number" inputmode="numeric" min="0" max="' + SHEET.hpMax + '" value="' + S.hp + '"' + (locked ? " readonly" : "") + ' aria-label="Current hit points">'
         +   '<span class="hpof">/ ' + SHEET.hpMax + '</span>'
-        +   '<button class="hpbtn" data-d="1" aria-label="Regain a hit point">+</button>'
+        +   '<button class="hpbtn" data-d="1"' + (locked ? " disabled" : "") + ' aria-label="Regain a hit point">+</button>'
         + '</div>';
       for(var j=0;j<SHEET.res.length;j++){
         var r = SHEET.res[j], pips = "";
         for(var k=0;k<r.max;k++){
-          pips += '<button class="tpip" data-k="' + r.k + '" data-i="' + k + '"'
+          pips += '<button class="tpip"' + (locked ? " disabled" : "") + ' data-k="' + r.k + '" data-i="' + k + '"'
                +  ' aria-label="' + esc(r.label) + ' ' + (k+1) + ' of ' + r.max + '"><i></i></button>';
         }
         h += '<div class="trk"><span class="trk-l">' + esc(r.label)
@@ -1902,8 +2014,8 @@ function TRACKERS(SHEETS){
           +  '</span><span class="trk-pips">' + pips + '</span></div>';
       }
       h += '<div class="rest-row">'
-        +    '<button data-rest="short">Short rest</button>'
-        +    '<button data-rest="long">Long rest</button>'
+        +    '<button data-rest="short"' + (locked ? " disabled" : "") + '>Short rest</button>'
+        +    '<button data-rest="long"' + (locked ? " disabled" : "") + '>Long rest</button>'
         +  '</div><p class="savechip" id="savechip-' + ns + '"></p>';
       host.innerHTML = h;
     }
@@ -1941,37 +2053,9 @@ function TRACKERS(SHEETS){
     var SHORT = {str:"Str",dex:"Dex",con:"Con",int:"Int",wis:"Wis",cha:"Cha"};
     var FULL  = {str:"Strength",dex:"Dexterity",con:"Constitution",int:"Intelligence",wis:"Wisdom",cha:"Charisma"};
 
-    function gateBar(){
-      if(!gate.hash){
-        return '<div class="gatebar"><span class="gatestate">Scores are read-only</span>'
-             + '<button class="addbtn" data-gate="set">Set a password</button></div>';
-      }
-      if(locked){
-        return '<div class="gatebar"><span class="gatestate">Scores are locked</span>'
-             + '<button class="addbtn" data-gate="ask">Unlock to edit</button></div>';
-      }
-      return '<div class="gatebar open"><span class="gatestate">Unlocked &mdash; scores can be changed</span>'
-           + '<button class="addbtn" data-gate="lock">Save &amp; lock</button></div>';
-    }
-
-    function gateForm(mode){
-      var h = '<div class="packbar"><button class="editbtn" data-gate="cancel">Cancel</button></div>'
-        + '<div class="gatebox">'
-        + '<input class="gatein" id="gate1-' + ns + '" type="password" autocomplete="new-password" placeholder="' + (mode === "set" ? "Choose a password" : "Password") + '" aria-label="Password">';
-      if(mode === "set"){
-        h += '<input class="gatein" id="gate2-' + ns + '" type="password" autocomplete="new-password" placeholder="Repeat it" aria-label="Repeat password">';
-      }
-      h += '<button class="addbtn" data-gate="' + (mode === "set" ? "save" : "try") + '">'
-        + (mode === "set" ? "Save" : "Unlock") + '</button></div>'
-        + '<p class="savechip" id="gatemsg-' + ns + '"></p>';
-      abilEl.innerHTML = h;
-      var f = document.getElementById("gate1-" + ns);
-      if(f) f.focus();
-    }
-
     function renderAbil(){
       if(!abilEl) return;
-      var h = gateBar() + '<div class="abilities">';
+      var h = '<div class="abilities">';
       for(var j=0;j<ORDER.length;j++){
         var k = ORDER[j];
         h += '<div class="ab"><span class="k">' + SHORT[k] + '</span>'
@@ -2044,7 +2128,8 @@ function TRACKERS(SHEETS){
     }
     function renderPack(readOnly){
       if(!packEl) return;
-      var h = '<div class="packbar"><button class="editbtn" data-edit="1">' + (readOnly ? "Edit" : "Done") + '</button></div>' + itemsHTML(readOnly);
+      var h = (locked ? '' : '<div class="packbar"><button class="editbtn" data-edit="1">' + (readOnly ? "Edit" : "Done") + '</button></div>')
+            + itemsHTML(locked ? true : readOnly);
       if(!readOnly){
         h += '<div class="addrow">'
           +    '<input class="additem" id="additem-' + ns + '" type="text" placeholder="Add an item" aria-label="New item">'
@@ -2068,7 +2153,7 @@ function TRACKERS(SHEETS){
     /* ---- purse ---- */
     function coinField(k, label){
       return '<label class="coin"><span>' + label + '</span>'
-        + '<input type="number" inputmode="numeric" min="0" data-coin="' + k + '" value="' + S.coin[k] + '" aria-label="' + label + '"></label>';
+        + '<input type="number" inputmode="numeric" min="0" data-coin="' + k + '" value="' + S.coin[k] + '"' + (locked ? " readonly" : "") + ' aria-label="' + label + '"></label>';
     }
     function renderPurse(){
       if(!purseEl) return;
@@ -2092,7 +2177,7 @@ function TRACKERS(SHEETS){
     function renderNotes(){
       if(!notesEl) return;
       notesEl.innerHTML = '<h2>Notes</h2><p class="cap">Session log</p>'
-        + '<textarea class="notesbox" id="notesbox-' + ns + '" rows="5" aria-label="Session notes"'
+        + '<textarea class="notesbox" id="notesbox-' + ns + '" rows="5"' + (locked ? " readonly" : "") + ' aria-label="Session notes"'
         + ' placeholder="What happened, who you met, what you owe…"></textarea>';
       var t = el("notesbox");
       t.value = S.notes || "";
@@ -2123,7 +2208,7 @@ function TRACKERS(SHEETS){
     if(host){
       host.addEventListener("click", function(e){
         var t = nearest(e.target, host);
-        if(!t) return;
+        if(!t || locked) return;
         e.preventDefault();
         if(t.hasAttribute("data-d")){
           S.hp = clamp(S.hp + parseInt(t.getAttribute("data-d"), 10), 0, SHEET.hpMax);
@@ -2141,7 +2226,7 @@ function TRACKERS(SHEETS){
         paintSession(); touched();
       });
       host.addEventListener("input", function(e){
-        if(!e.target || e.target.id !== "hpin-" + ns) return;
+        if(!e.target || e.target.id !== "hpin-" + ns || locked) return;
         var n = parseInt(e.target.value, 10);
         if(isNaN(n)) return;
         S.hp = clamp(n, 0, SHEET.hpMax);
@@ -2149,66 +2234,7 @@ function TRACKERS(SHEETS){
       });
     }
 
-    function gateMsg(t, warn){
-      var m = document.getElementById("gatemsg-" + ns);
-      if(m){ m.textContent = t || ""; m.className = warn ? "savechip warn" : "savechip"; }
-    }
-
     if(abilEl){
-      abilEl.addEventListener("click", function(e){
-        var t = e.target;
-        while(t && t !== abilEl && !(t.getAttribute && t.hasAttribute("data-gate"))) t = t.parentNode;
-        if(!t || t === abilEl) return;
-        e.preventDefault();
-        var what = t.getAttribute("data-gate");
-
-        if(what === "set")    return gateForm("set");
-        if(what === "ask")    return gateForm("ask");
-        if(what === "cancel") return renderAbil();
-
-        if(what === "lock"){
-          locked = true;
-          refreshAbilAll();
-          if(timer){ clearTimeout(timer); commit(); }
-          return;
-        }
-
-        var pw = (document.getElementById("gate1-" + ns) || {}).value || "";
-        if(!pw){ gateMsg("enter a password", true); return; }
-
-        if(what === "save"){
-          var pw2 = (document.getElementById("gate2-" + ns) || {}).value || "";
-          if(pw !== pw2){ gateMsg("the two entries do not match", true); return; }
-          if(pw.length < 4){ gateMsg("use at least 4 characters", true); return; }
-          hashPw(pw).then(function(g){
-            gate.alg = g.alg; gate.hash = g.hash;
-            locked = false;
-            refreshAbilAll();
-            touched(200);
-          });
-          return;
-        }
-
-        if(what === "try"){
-          hashPw(pw).then(function(g){
-            if(g.alg === gate.alg && g.hash === gate.hash){
-              locked = false;
-              refreshAbilAll();
-            }else{
-              gateMsg("that is not the password", true);
-            }
-          });
-        }
-      });
-
-      abilEl.addEventListener("keydown", function(e){
-        if(e.key !== "Enter") return;
-        if(!e.target || e.target.className.indexOf("gatein") === -1) return;
-        e.preventDefault();
-        var btn = abilEl.querySelector('[data-gate="save"],[data-gate="try"]');
-        if(btn) btn.click();
-      });
-
       abilEl.addEventListener("input", function(e){
         var k = e.target && e.target.getAttribute && e.target.getAttribute("data-ab");
         if(!k || locked) return;
@@ -2227,7 +2253,7 @@ function TRACKERS(SHEETS){
     if(packEl){
       packEl.addEventListener("click", function(e){
         var t = nearest(e.target, packEl);
-        if(!t) return;
+        if(!t || locked) return;
         e.preventDefault();
         if(t.hasAttribute("data-edit")){ editing = !editing; renderPack(!editing); return; }
         if(t.hasAttribute("data-rm")){
@@ -2244,7 +2270,7 @@ function TRACKERS(SHEETS){
     if(purseEl){
       purseEl.addEventListener("input", function(e){
         var k = e.target && e.target.getAttribute && e.target.getAttribute("data-coin");
-        if(!k) return;
+        if(!k || locked) return;
         S.coin[k] = num(e.target.value);
         e.target.setAttribute("value", S.coin[k]);
         touched();
@@ -2253,7 +2279,7 @@ function TRACKERS(SHEETS){
 
     if(notesEl){
       notesEl.addEventListener("input", function(e){
-        if(!e.target || e.target.id !== "notesbox-" + ns) return;
+        if(!e.target || e.target.id !== "notesbox-" + ns || locked) return;
         S.notes = e.target.value;
         autosize(e.target);
         touched(3000);
@@ -2338,7 +2364,7 @@ function TRACKERS(SHEETS){
       + '<div class="rest-row">'
       +   '<button data-bk="toggle">' + (open ? "Hide data" : "Show data") + '</button>'
       +   (open ? '<button class="addbtn" data-bk="copy">Copy</button>' : '')
-      +   (open ? '<button data-bk="apply">Apply pasted data</button>' : '')
+      +   ((open && !locked) ? '<button data-bk="apply">Apply pasted data</button>' : '')
       + '</div>';
     if(open) h += '<textarea class="notesbox" id="bkbox" rows="6" spellcheck="false" aria-label="Backup data"></textarea>';
     h += '<p class="savechip" id="bkmsg"></p>';
@@ -2480,6 +2506,7 @@ function TRACKERS(SHEETS){
   for(var i=0;i<SHEETS.length;i++) views.push(makeView(SHEETS[i]));
   for(i=0;i<views.length;i++) views[i].render();
   renderBackup(false);
+  renderLock(false);
 
   /* textareas in hidden panels report zero height; resize when one is shown */
   var allRadios = document.querySelectorAll("input[type=radio]");

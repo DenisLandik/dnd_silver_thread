@@ -37,12 +37,13 @@ skill, save, passive Perception and spell DC, and a session notes box.
 Tabs and the character switch are pure CSS — they work with JavaScript disabled.
 Everything else degrades to correct static text rather than breaking.
 
-## Locking the ability scores
+## Read-only by default
 
-The Stats tab opens read-only. The **Edit** button on the Ability Scores card
-asks for a password; the first time it offers to set one. Unlocking frees the
-scores for both characters, and **Save & lock** writes the change and returns
-the page to read-only.
+The whole page opens read-only. The control at the top right shows the current
+mode; tapping it asks for a password, and the first time it offers to set one.
+Unlocking frees every editor on the page for both characters — hit points,
+pips, rests, kit, coin, ability scores and notes. **Save & lock** writes the
+change and returns the page to read-only.
 
 Only a salted SHA-256 hash of the password is stored, alongside the rest of the
 state. Treat this as a guard against accidents, not as security: the check runs

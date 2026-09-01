@@ -777,7 +777,7 @@ button[disabled]{opacity:.45;cursor:default}
 
     <div class="vitals">
       <div class="vital acc"><span class="n">12/15</span><span class="l">Armor</span></div>
-      <div class="vital"><span class="n">24</span><span class="l">Max HP</span></div>
+      <div class="vital"><span class="n" data-hpmax>0</span><span class="l">Max HP</span></div>
       <div class="vital"><span class="n">+6</span><span class="l">Initiative</span></div>
       <div class="vital"><span class="n">30<span style="font-size:13px">ft</span></span><span class="l">Speed</span></div>
       <div class="vital"><span class="n">+2</span><span class="l">Prof.</span></div>
@@ -1251,7 +1251,7 @@ button[disabled]{opacity:.45;cursor:default}
 
     <div class="vitals">
       <div class="vital acc"><span class="n">13</span><span class="l">Armor</span></div>
-      <div class="vital"><span class="n">21</span><span class="l">Max HP</span></div>
+      <div class="vital"><span class="n" data-hpmax>0</span><span class="l">Max HP</span></div>
       <div class="vital"><span class="n">+2</span><span class="l">Initiative</span></div>
       <div class="vital"><span class="n">25<span style="font-size:13px">ft</span></span><span class="l">Speed</span></div>
       <div class="vital"><span class="n">+2</span><span class="l">Prof.</span></div>
@@ -2187,9 +2187,22 @@ function TRACKERS(SHEETS){
       if(!host) return;
       var inp = el("hpin");
       if(inp){
+        /* the ceiling moves with hpMax; without this the field silently
+           refuses anything above whatever it was built with */
+        inp.setAttribute("max", S.hpMax);
+        inp.max = S.hpMax;
         inp.setAttribute("value", S.hp);
         if(document.activeElement !== inp) inp.value = S.hp;
       }
+      var mx = el("hpmax");
+      if(mx){
+        mx.setAttribute("value", S.hpMax);
+        if(document.activeElement !== mx) mx.value = S.hpMax;
+      }
+      /* the Max HP tile up in the hero reads from the same number */
+      var scope = (host.closest && host.closest(".page")) || document;
+      var tiles = scope.querySelectorAll("[data-hpmax]");
+      for(var t=0;t<tiles.length;t++) tiles[t].textContent = S.hpMax;
       for(var j=0;j<SHEET.res.length;j++){
         var r = SHEET.res[j];
         var nodes = host.querySelectorAll('.tpip[data-k="' + r.k + '"]');
@@ -2378,14 +2391,14 @@ function TRACKERS(SHEETS){
         if(!t || locked) return;
         e.preventDefault();
         if(t.hasAttribute("data-d")){
-          S.hp = clamp(S.hp + parseInt(t.getAttribute("data-d"), 10), 0, SHEET.hpMax);
+          S.hp = clamp(S.hp + parseInt(t.getAttribute("data-d"), 10), 0, S.hpMax);
         }else if(t.hasAttribute("data-rest")){
           var kind = t.getAttribute("data-rest");
           for(var j=0;j<SHEET.res.length;j++){
             var r = SHEET.res[j];
             if(kind === "long" || r.rest === "short") S.spent[r.k] = 0;
           }
-          if(kind === "long") S.hp = SHEET.hpMax;
+          if(kind === "long") S.hp = S.hpMax;
         }else{
           var key = t.getAttribute("data-k"), idx = parseInt(t.getAttribute("data-i"), 10);
           S.spent[key] = (S.spent[key] > idx) ? idx : idx + 1;
@@ -2400,13 +2413,14 @@ function TRACKERS(SHEETS){
           S.hpMax = m;
           if(S.hp > m) S.hp = m;
           e.target.setAttribute("value", m);
+          paintSession();          /* lift the ceiling and update the hero tile */
           touched();
           return;
         }
         if(e.target.id !== "hpin-" + ns) return;
         var n = parseInt(e.target.value, 10);
         if(isNaN(n)) return;
-        S.hp = clamp(n, 0, SHEET.hpMax);
+        S.hp = clamp(n, 0, S.hpMax);
         touched();
       });
     }

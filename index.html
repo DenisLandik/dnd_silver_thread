@@ -553,6 +553,38 @@ li.exp .sk-val{color:var(--gold);font-weight:600}
   background:transparent;border-color:var(--rule-soft);
   color:var(--ink-3);cursor:default;
 }
+/* level, sitting with the character identity */
+.levelrow{
+  display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+  border:1px solid var(--rule);border-left:3px solid var(--gold);
+  border-radius:3px;padding:9px 12px;margin:14px 0 0;background:var(--card);
+}
+.levellab{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);
+}
+.levelin{
+  width:3.2em;height:40px;padding:2px;text-align:center;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;
+  color:var(--ink);background:var(--paper);
+  border:1px solid var(--rule);border-radius:3px;
+}
+.levelin[readonly]{background:transparent;border-color:var(--rule-soft);color:var(--ink-2)}
+.levelmeta{
+  flex:1 1 auto;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:11px;letter-spacing:.05em;color:var(--ink-3);
+}
+.hpmaxin{
+  width:2.6em;padding:1px;text-align:center;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:13px;font-variant-numeric:tabular-nums;
+  color:var(--ink-2);background:transparent;
+  border:1px solid var(--rule-soft);border-radius:2px;
+}
+.hpmaxin[readonly]{border-color:transparent}
+
 /* page-level lock, top right */
 .pagetop{padding-top:12px}
 .lockrow{
@@ -741,6 +773,7 @@ button[disabled]{opacity:.45;cursor:default}
         </p>
       </div>
     </div>
+    <div id="level-a"></div>
 
     <div class="vitals">
       <div class="vital acc"><span class="n">12/15</span><span class="l">Armor</span></div>
@@ -769,6 +802,8 @@ button[disabled]{opacity:.45;cursor:default}
 
   <!-- ============ FIGHT ============ -->
   <div class="panel" id="pa-fight">
+    <section class="card" id="feats-a"></section>
+
     <section class="card session" id="session-a"><h2>Session</h2><p class="cap">Hit points &middot; resources &middot; rests</p><p>Live tracking needs JavaScript. Every number below is unaffected.</p></section>
 
 
@@ -846,7 +881,7 @@ button[disabled]{opacity:.45;cursor:default}
     <section class="card">
       <h2>Breath Weapon</h2>
       <p class="cap">Action · Recharges on a short or long rest</p>
-      <p>Exhale lightning in a <strong>5 × 30 ft line</strong>. Each creature caught in it makes a <strong>Dexterity save, DC <span data-calc="a:breathdc">12</span></strong> — <span style="color:var(--red)">2d6 lightning</span> on a fail, half on a success.</p>
+      <p>Exhale lightning in a <strong>5 × 30 ft line</strong>. Each creature caught in it makes a <strong>Dexterity save, DC <span data-calc="a:breathdc">12</span></strong> — <span style="color:var(--red)"><span data-calc="a:breathdice">2d6</span> lightning</span> on a fail, half on a success.</p>
       <div class="note">Scales to 3d6 at 6th level, 4d6 at 11th, 5d6 at 16th.</div>
     </section>
 
@@ -1204,7 +1239,7 @@ button[disabled]{opacity:.45;cursor:default}
         <p class="eyebrow">Royal Academy of Fine Arts, Graduate</p>
         <h1>Termina &ldquo;Mina&rdquo; Junius</h1>
         <p class="subline">
-          <b>Halfling (Lightfoot)</b> &middot; Bard 3 <span style="color:var(--ink-3)">(College of Lore)</span><br>
+          <b>Halfling (Lightfoot)</b><br>
           <b>Entertainer</b> &middot; Chaotic Good<br>
           Age 20 &middot; 106 cm / 3&frac12; ft &middot; 25 kg / 55 lbs<br>
           Green eyes &middot; Fair skin &middot; Auburn hair<br>
@@ -1212,6 +1247,7 @@ button[disabled]{opacity:.45;cursor:default}
         </p>
       </div>
     </div>
+    <div id="level-m"></div>
 
     <div class="vitals">
       <div class="vital acc"><span class="n">13</span><span class="l">Armor</span></div>
@@ -1241,6 +1277,8 @@ button[disabled]{opacity:.45;cursor:default}
 
   <!-- ============ FIGHT ============ -->
   <div class="panel" id="pm-fight">
+    <section class="card" id="feats-m"></section>
+
     <section class="card session" id="session-m"><h2>Session</h2><p class="cap">Hit points &middot; resources &middot; rests</p><p>Live tracking needs JavaScript. Every number below is unaffected.</p></section>
 
 
@@ -1968,17 +2006,20 @@ function TRACKERS(SHEETS){
     var AB = SHEET.abil || null;
     var editing = false;
 
-    var S = {v:1, hp:SHEET.hpMax, temp:0, spent:{}, items:null, coin:null, scores:null, notes:""};
+    var S = {v:1, level:SHEET.level, hpMax:SHEET.hpMax, hp:SHEET.hpMax, temp:0,
+             spent:{}, items:null, coin:null, scores:null, notes:""};
     var i;
     for(i=0;i<SHEET.res.length;i++) S.spent[SHEET.res[i].k] = 0;
 
     function loadFrom(got){
       if(!got || typeof got !== "object") return false;
-      if(typeof got.hp === "number") S.hp = Math.max(0, Math.min(SHEET.hpMax, got.hp));
+      if(typeof got.level === "number" && got.level >= 1 && got.level <= 20) S.level = got.level;
+      if(typeof got.hpMax === "number" && got.hpMax > 0) S.hpMax = got.hpMax;
+      if(typeof got.hp === "number") S.hp = Math.max(0, Math.min(S.hpMax, got.hp));
       if(typeof got.temp === "number") S.temp = Math.max(0, got.temp);
       for(var j=0;j<SHEET.res.length;j++){
         var r = SHEET.res[j], n = got.spent ? got.spent[r.k] : null;
-        if(typeof n === "number" && n >= 0 && n <= r.max) S.spent[r.k] = n;
+        if(typeof n === "number" && n >= 0) S.spent[r.k] = n;   /* clamped once level is known */
       }
       if(Object.prototype.toString.call(got.items) === "[object Array]"){
         S.items = [];
@@ -2018,23 +2059,112 @@ function TRACKERS(SHEETS){
     if(!S.coin) S.coin = {gp:num(SHEET.coin && SHEET.coin.gp), sp:num(SHEET.coin && SHEET.coin.sp), cp:num(SHEET.coin && SHEET.coin.cp)};
     if(AB && !S.scores){ S.scores = {}; for(var q in AB.scores) S.scores[q] = AB.scores[q]; }
 
+    /* ---- everything that follows from level ---- */
+    function prof(){ return Math.floor((S.level - 1) / 4) + 2; }
+
+    function scaleDie(steps){
+      /* steps: [[level, die], ...] highest matching level wins */
+      var out = steps[0][1];
+      for(var j=0;j<steps.length;j++) if(S.level >= steps[j][0]) out = steps[j][1];
+      return out;
+    }
+
+    function slotsAt(lvl, tier){
+      if(!SHEET.slots) return 0;
+      var row = SHEET.slots[Math.min(20, Math.max(1, lvl)) - 1] || [];
+      return row[tier - 1] || 0;
+    }
+
+    function resMax(r){
+      if(r.from === "level")   return S.level;
+      if(r.from === "abil")    return Math.max(1, mod(S.scores[r.abil]));
+      if(r.from === "slot")    return slotsAt(S.level, r.tier);
+      if(r.from === "prof")    return prof();
+      if(r.from === "steps"){
+        var out = 0;
+        for(var q=0;q<r.steps.length;q++) if(S.level >= r.steps[q][0]) out = r.steps[q][1];
+        return out;
+      }
+      return r.max;
+    }
+
+    function resLabel(r){
+      if(r.die) return r.label + " · " + scaleDie(r.die);
+      return r.label;
+    }
+
+    function levelEl(){ return el("level"); }
+
+    function renderLevel(){
+      var host2 = levelEl();
+      if(!host2) return;
+      host2.innerHTML = '<div class="levelrow">'
+        + '<span class="levellab">Level</span>'
+        + '<input class="levelin" id="levelin-' + ns + '" type="number" inputmode="numeric" min="1" max="20" value="' + S.level + '"'
+        + (locked ? " readonly" : "") + ' aria-label="Character level">'
+        + '<span class="levelmeta">' + esc(SHEET.className) + ' &middot; prof ' + fmt(prof())
+        + ' &middot; hit dice ' + S.level + SHEET.hitDie + '</span>'
+        + '</div>';
+    }
+
+    /* ---- progression ---- */
+    function featsEl(){ return el("feats"); }
+
+    function renderFeats(){
+      var host2 = featsEl();
+      if(!host2) return;
+      var prog = SHEET.prog || [];
+      var h2 = '<h2>Progression</h2><p class="cap">' + esc(SHEET.className) + '</p>';
+
+      var now = [];
+      for(var j=0;j<prog.length;j++) if(prog[j].l === S.level) now = prog[j].g;
+      if(now.length){
+        h2 += '<h3>New at level ' + S.level + '</h3><ul class="lines">';
+        for(j=0;j<now.length;j++) h2 += '<li><span class="dot on"></span><span class="sk-name">' + esc(now[j]) + '</span></li>';
+        h2 += '</ul>';
+      }
+
+      h2 += '<h3>Already have</h3><ul class="lines">';
+      var any = false;
+      for(j=0;j<prog.length;j++){
+        if(prog[j].l > S.level || prog[j].l === S.level) continue;
+        for(var k=0;k<prog[j].g.length;k++){
+          any = true;
+          h2 += '<li><span class="dot on"></span><span class="sk-name">' + esc(prog[j].g[k])
+             +  '<span class="ab-tag">lvl ' + prog[j].l + '</span></span></li>';
+        }
+      }
+      if(!any) h2 += '<li><span class="sk-name" style="color:var(--ink-3)">Nothing listed</span></li>';
+      h2 += '</ul>';
+
+      var next = null;
+      for(j=0;j<prog.length;j++) if(prog[j].l > S.level){ next = prog[j]; break; }
+      if(next){
+        h2 += '<h3>Next, at level ' + next.l + '</h3><ul class="lines">';
+        for(k=0;k<next.g.length;k++) h2 += '<li><span class="dot"></span><span class="sk-name">' + esc(next.g[k]) + '</span></li>';
+        h2 += '</ul>';
+      }
+      host2.innerHTML = h2;
+    }
+
     /* ---- session ---- */
     function buildSession(){
       if(!host) return;
       var h = '<h2>Session</h2><p class="cap">Tap a pip to spend &middot; tap it again to restore</p>'
         + '<div class="hpbox">'
         +   '<button class="hpbtn" data-d="-1"' + (locked ? " disabled" : "") + ' aria-label="Lose a hit point">&minus;</button>'
-        +   '<input class="hpin" id="hpin-' + ns + '" type="number" inputmode="numeric" min="0" max="' + SHEET.hpMax + '" value="' + S.hp + '"' + (locked ? " readonly" : "") + ' aria-label="Current hit points">'
-        +   '<span class="hpof">/ ' + SHEET.hpMax + '</span>'
+        +   '<input class="hpin" id="hpin-' + ns + '" type="number" inputmode="numeric" min="0" max="' + S.hpMax + '" value="' + S.hp + '"' + (locked ? " readonly" : "") + ' aria-label="Current hit points">'
+        +   '<span class="hpof">/ <input class="hpmaxin" id="hpmax-' + ns + '" type="number" inputmode="numeric" min="1" value="' + S.hpMax + '"' + (locked ? " readonly" : "") + ' aria-label="Maximum hit points"></span>'
         +   '<button class="hpbtn" data-d="1"' + (locked ? " disabled" : "") + ' aria-label="Regain a hit point">+</button>'
         + '</div>';
       for(var j=0;j<SHEET.res.length;j++){
-        var r = SHEET.res[j], pips = "";
-        for(var k=0;k<r.max;k++){
+        var r = SHEET.res[j], pips = "", rmax = resMax(r);
+        for(var k=0;k<rmax;k++){
           pips += '<button class="tpip"' + (locked ? " disabled" : "") + ' data-k="' + r.k + '" data-i="' + k + '"'
-               +  ' aria-label="' + esc(r.label) + ' ' + (k+1) + ' of ' + r.max + '"><i></i></button>';
+               +  ' aria-label="' + esc(r.label) + ' ' + (k+1) + ' of ' + rmax + '"><i></i></button>';
         }
-        h += '<div class="trk"><span class="trk-l">' + esc(r.label)
+        if(!rmax) continue;
+        h += '<div class="trk"><span class="trk-l">' + esc(resLabel(r))
           +  (r.note ? '<small>' + esc(r.note) + '</small>' : '')
           +  '</span><span class="trk-pips">' + pips + '</span></div>';
       }
@@ -2043,6 +2173,14 @@ function TRACKERS(SHEETS){
         +    '<button data-rest="long"' + (locked ? " disabled" : "") + '>Long rest</button>'
         +  '</div><p class="savechip" id="savechip-' + ns + '"></p>';
       host.innerHTML = h;
+    }
+
+    function clampSpent(){
+      for(var j=0;j<SHEET.res.length;j++){
+        var r = SHEET.res[j], m = resMax(r);
+        if(S.spent[r.k] > m) S.spent[r.k] = m;
+      }
+      if(S.hp > S.hpMax) S.hp = S.hpMax;
     }
 
     function paintSession(){
@@ -2064,11 +2202,11 @@ function TRACKERS(SHEETS){
     function fmt(n){ return (n < 0 ? "−" : "+") + Math.abs(n); }
     function skillTotal(sk){
       var m = mod(S.scores[sk.a]);
-      if(sk.p === 2) return m + AB.prof * 2;
-      if(sk.p === 1) return m + AB.prof;
-      return m + (AB.joat ? Math.floor(AB.prof / 2) : 0);
+      if(sk.p === 2) return m + prof() * 2;
+      if(sk.p === 1) return m + prof();
+      return m + (AB.joat ? Math.floor(prof() / 2) : 0);
     }
-    function saveTotal(k){ return mod(S.scores[k]) + (AB.saves.indexOf(k) > -1 ? AB.prof : 0); }
+    function saveTotal(k){ return mod(S.scores[k]) + (AB.saves.indexOf(k) > -1 ? prof() : 0); }
     function skillByName(n){
       for(var j=0;j<AB.skills.length;j++) if(AB.skills[j].n === n) return AB.skills[j];
       return null;
@@ -2126,8 +2264,12 @@ function TRACKERS(SHEETS){
         var nodes = document.querySelectorAll('[data-calc="' + ns + ':' + d.sel + '"]');
         if(!nodes.length) continue;
         var val;
-        if(d.kind === "dc")       val = String(8 + AB.prof + mod(S.scores[d.abil]));
-        else if(d.kind === "atk") val = fmt(AB.prof + mod(S.scores[d.abil]));
+        if(d.kind === "dc")       val = String(8 + prof() + mod(S.scores[d.abil]));
+        else if(d.kind === "atk") val = fmt(prof() + mod(S.scores[d.abil]));
+        else if(d.kind === "table"){
+          val = d.steps[0][1];
+          for(var z=0;z<d.steps.length;z++) if(S.level >= d.steps[z][0]) val = d.steps[z][1];
+        }
         else if(d.kind === "passive"){
           var sk = skillByName(d.skill);
           val = String(10 + (sk ? skillTotal(sk) : 0));
@@ -2251,10 +2393,46 @@ function TRACKERS(SHEETS){
         paintSession(); touched();
       });
       host.addEventListener("input", function(e){
-        if(!e.target || e.target.id !== "hpin-" + ns || locked) return;
+        if(locked || !e.target) return;
+        if(e.target.id === "hpmax-" + ns){
+          var m = num(e.target.value);
+          if(m < 1) m = 1;
+          S.hpMax = m;
+          if(S.hp > m) S.hp = m;
+          e.target.setAttribute("value", m);
+          touched();
+          return;
+        }
+        if(e.target.id !== "hpin-" + ns) return;
         var n = parseInt(e.target.value, 10);
         if(isNaN(n)) return;
         S.hp = clamp(n, 0, SHEET.hpMax);
+        touched();
+      });
+    }
+
+    var lvlHost = levelEl();
+    if(lvlHost){
+      lvlHost.addEventListener("input", function(e){
+        if(locked || !e.target || e.target.id !== "levelin-" + ns) return;
+        var v = num(e.target.value);
+        if(v < 1) v = 1;
+        if(v > 20) v = 20;
+        S.level = v;
+        e.target.setAttribute("value", v);
+        clampSpent();
+        /* repaint the summary in place: re-rendering would replace the field
+           being typed into and throw away focus mid-number */
+        var meta = lvlHost.querySelector(".levelmeta");
+        if(meta){
+          meta.textContent = SHEET.className + " · prof " + fmt(prof())
+                           + " · hit dice " + S.level + SHEET.hitDie;
+        }
+        renderFeats();
+        buildSession(); paintSession();
+        if(AB) renderAbilities();
+        chips = [];
+        for(var q=0;q<views.length;q++){ var c = document.getElementById("savechip-" + SHEETS[q].ns); if(c) chips.push(c); }
         touched();
       });
     }
@@ -2312,6 +2490,8 @@ function TRACKERS(SHEETS){
     }
 
     function renderAll(){
+      renderLevel(); renderFeats();
+      clampSpent();
       buildSession(); paintSession();
       if(AB) renderAbilities();
       renderPack(!editing);
@@ -2323,6 +2503,7 @@ function TRACKERS(SHEETS){
     return {
       id: SHEET.id,
       state: function(){ return S; },
+      relabel: function(){ renderLevel(); renderFeats(); },
       render: renderAll,
       refreshAbil: function(){ if(AB) renderAbilities(); },
       resize: function(){ autosize(el("notesbox")); },
@@ -2626,7 +2807,7 @@ function TRACKERS(SHEETS){
 }
 
 try{
-  TRACKERS([{"abil": {"prof": 2, "joat": false, "scores": {"str": 16, "dex": 12, "con": 14, "int": 10, "wis": 12, "cha": 12}, "saves": ["str", "con"], "skills": [{"n": "Acrobatics", "a": "dex", "p": 1}, {"n": "Animal Handling", "a": "wis", "p": 0}, {"n": "Arcana", "a": "int", "p": 0}, {"n": "Athletics", "a": "str", "p": 1}, {"n": "Deception", "a": "cha", "p": 0}, {"n": "History", "a": "int", "p": 0}, {"n": "Insight", "a": "wis", "p": 1}, {"n": "Intimidation", "a": "str", "p": 1}, {"n": "Investigation", "a": "int", "p": 0}, {"n": "Medicine", "a": "wis", "p": 0}, {"n": "Nature", "a": "int", "p": 0}, {"n": "Perception", "a": "wis", "p": 0}, {"n": "Performance", "a": "cha", "p": 1}, {"n": "Persuasion", "a": "cha", "p": 0}, {"n": "Religion", "a": "int", "p": 0}, {"n": "Sleight of Hand", "a": "dex", "p": 0}, {"n": "Stealth", "a": "dex", "p": 0}, {"n": "Survival", "a": "wis", "p": 0}], "derived": [{"sel": "breathdc", "kind": "dc", "abil": "con"}, {"sel": "passperc", "kind": "passive", "skill": "Perception"}]}, "coin": {"gp": 20, "sp": 0, "cp": 0}, "id": "alaricks", "hpMax": 24, "placeholder": "<h2>Session</h2><p class=\"cap\">Hit points &middot; resources &middot; rests</p><p>Live tracking needs JavaScript. Every number below is unaffected.</p>", "res": [{"k": "moxie", "label": "Moxie", "note": "long rest", "max": 3, "rest": "long"}, {"k": "breath", "label": "Breath Weapon", "note": "short or long rest", "max": 1, "rest": "short"}, {"k": "ward", "label": "Arcane Ward", "note": "long rest", "max": 1, "rest": "long"}, {"k": "hd", "label": "Hit Dice", "note": "d8", "max": 4, "rest": "long"}], "ns": "a"}, {"abil": {"prof": 2, "joat": true, "scores": {"str": 8, "dex": 14, "con": 12, "int": 14, "wis": 10, "cha": 17}, "saves": ["dex", "cha"], "skills": [{"n": "Acrobatics", "a": "dex", "p": 1}, {"n": "Animal Handling", "a": "wis", "p": 0}, {"n": "Arcana", "a": "int", "p": 0}, {"n": "Athletics", "a": "str", "p": 0}, {"n": "Deception", "a": "cha", "p": 2}, {"n": "History", "a": "int", "p": 0}, {"n": "Insight", "a": "wis", "p": 0}, {"n": "Intimidation", "a": "cha", "p": 1}, {"n": "Investigation", "a": "int", "p": 0}, {"n": "Medicine", "a": "wis", "p": 0}, {"n": "Nature", "a": "int", "p": 0}, {"n": "Perception", "a": "wis", "p": 0}, {"n": "Performance", "a": "cha", "p": 2}, {"n": "Persuasion", "a": "cha", "p": 1}, {"n": "Religion", "a": "int", "p": 0}, {"n": "Sleight of Hand", "a": "dex", "p": 1}, {"n": "Stealth", "a": "dex", "p": 0}, {"n": "Survival", "a": "wis", "p": 0}], "derived": [{"sel": "spelldc", "kind": "dc", "abil": "cha"}, {"sel": "spellatk", "kind": "atk", "abil": "cha"}, {"sel": "passperc", "kind": "passive", "skill": "Perception"}]}, "coin": {"gp": 100, "sp": 10, "cp": 30}, "id": "mina", "hpMax": 21, "placeholder": "<h2>Session</h2><p class=\"cap\">Hit points &middot; resources &middot; rests</p><p>Live tracking needs JavaScript. Every number below is unaffected.</p>", "res": [{"k": "bardic", "label": "Bardic Inspiration", "note": "d6 \u00b7 long rest", "max": 3, "rest": "long"}, {"k": "slot1", "label": "1st-level slots", "note": "long rest", "max": 4, "rest": "long"}, {"k": "slot2", "label": "2nd-level slots", "note": "long rest", "max": 2, "rest": "long"}, {"k": "ward", "label": "Arcane Ward", "note": "long rest", "max": 1, "rest": "long"}, {"k": "leader", "label": "Inspiring Leader", "note": "short or long rest", "max": 1, "rest": "short"}, {"k": "hd", "label": "Hit Dice", "note": "d8", "max": 3, "rest": "long"}], "ns": "m"}]);
+  TRACKERS([{"abil": {"prof": 2, "joat": false, "scores": {"str": 16, "dex": 12, "con": 14, "int": 10, "wis": 12, "cha": 12}, "saves": ["str", "con"], "skills": [{"n": "Acrobatics", "a": "dex", "p": 1}, {"n": "Animal Handling", "a": "wis", "p": 0}, {"n": "Arcana", "a": "int", "p": 0}, {"n": "Athletics", "a": "str", "p": 1}, {"n": "Deception", "a": "cha", "p": 0}, {"n": "History", "a": "int", "p": 0}, {"n": "Insight", "a": "wis", "p": 1}, {"n": "Intimidation", "a": "str", "p": 1}, {"n": "Investigation", "a": "int", "p": 0}, {"n": "Medicine", "a": "wis", "p": 0}, {"n": "Nature", "a": "int", "p": 0}, {"n": "Perception", "a": "wis", "p": 0}, {"n": "Performance", "a": "cha", "p": 1}, {"n": "Persuasion", "a": "cha", "p": 0}, {"n": "Religion", "a": "int", "p": 0}, {"n": "Sleight of Hand", "a": "dex", "p": 0}, {"n": "Stealth", "a": "dex", "p": 0}, {"n": "Survival", "a": "wis", "p": 0}], "derived": [{"sel": "breathdc", "kind": "dc", "abil": "con"}, {"sel": "passperc", "kind": "passive", "skill": "Perception"}, {"sel": "breathdice", "kind": "table", "steps": [[1, "2d6"], [6, "3d6"], [11, "4d6"], [16, "5d6"]]}]}, "coin": {"gp": 20, "sp": 0, "cp": 0}, "id": "alaricks", "hpMax": 24, "placeholder": "<h2>Session</h2><p class=\"cap\">Hit points &middot; resources &middot; rests</p><p>Live tracking needs JavaScript. Every number below is unaffected.</p>", "res": [{"k": "moxie", "label": "Moxie", "note": "long rest", "max": 3, "rest": "long"}, {"k": "breath", "label": "Breath Weapon", "note": "short or long rest", "max": 1, "rest": "short"}, {"k": "ward", "label": "Arcane Ward", "note": "long rest", "rest": "long", "from": "steps", "steps": [[1, 1], [5, 2], [11, 3]]}, {"k": "hd", "label": "Hit Dice", "note": "d8", "rest": "long", "from": "level"}], "ns": "a", "level": 4, "className": "Pugilist \u00b7 Squared Circle", "hitDie": "d8", "prog": [{"l": 5, "g": ["Arcane Ward adds counterspell, 2 uses per long rest"]}, {"l": 6, "g": ["Breath Weapon 3d6"]}, {"l": 11, "g": ["Arcane Ward adds death ward, 3 uses per long rest", "Breath Weapon 4d6"]}, {"l": 16, "g": ["Breath Weapon 5d6"]}], "slots": null}, {"abil": {"prof": 2, "joat": true, "scores": {"str": 8, "dex": 14, "con": 12, "int": 14, "wis": 10, "cha": 17}, "saves": ["dex", "cha"], "skills": [{"n": "Acrobatics", "a": "dex", "p": 1}, {"n": "Animal Handling", "a": "wis", "p": 0}, {"n": "Arcana", "a": "int", "p": 0}, {"n": "Athletics", "a": "str", "p": 0}, {"n": "Deception", "a": "cha", "p": 2}, {"n": "History", "a": "int", "p": 0}, {"n": "Insight", "a": "wis", "p": 0}, {"n": "Intimidation", "a": "cha", "p": 1}, {"n": "Investigation", "a": "int", "p": 0}, {"n": "Medicine", "a": "wis", "p": 0}, {"n": "Nature", "a": "int", "p": 0}, {"n": "Perception", "a": "wis", "p": 0}, {"n": "Performance", "a": "cha", "p": 2}, {"n": "Persuasion", "a": "cha", "p": 1}, {"n": "Religion", "a": "int", "p": 0}, {"n": "Sleight of Hand", "a": "dex", "p": 1}, {"n": "Stealth", "a": "dex", "p": 0}, {"n": "Survival", "a": "wis", "p": 0}], "derived": [{"sel": "spelldc", "kind": "dc", "abil": "cha"}, {"sel": "spellatk", "kind": "atk", "abil": "cha"}, {"sel": "passperc", "kind": "passive", "skill": "Perception"}]}, "coin": {"gp": 100, "sp": 10, "cp": 30}, "id": "mina", "hpMax": 21, "placeholder": "<h2>Session</h2><p class=\"cap\">Hit points &middot; resources &middot; rests</p><p>Live tracking needs JavaScript. Every number below is unaffected.</p>", "res": [{"k": "bardic", "label": "Bardic Inspiration", "note": "long rest", "rest": "long", "from": "abil", "abil": "cha", "die": [[1, "d6"], [5, "d8"], [10, "d10"], [15, "d12"]]}, {"k": "slot1", "label": "1st-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 1}, {"k": "slot2", "label": "2nd-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 2}, {"k": "slot3", "label": "3rd-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 3}, {"k": "slot4", "label": "4th-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 4}, {"k": "slot5", "label": "5th-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 5}, {"k": "ward", "label": "Arcane Ward", "note": "long rest", "max": 1, "rest": "long"}, {"k": "leader", "label": "Inspiring Leader", "note": "short or long rest", "max": 1, "rest": "short"}, {"k": "hd", "label": "Hit Dice", "note": "d8", "rest": "long", "from": "level"}], "ns": "m", "level": 3, "className": "Bard \u00b7 College of Lore", "hitDie": "d8", "prog": [{"l": 1, "g": ["Spellcasting", "Bardic Inspiration (d6)"]}, {"l": 2, "g": ["Jack of All Trades", "Song of Rest (d6)"]}, {"l": 3, "g": ["Bard College: Lore", "Bonus Proficiencies (3 skills)", "Cutting Words", "Expertise (2 skills)"]}, {"l": 4, "g": ["Ability Score Improvement", "A fourth cantrip"]}, {"l": 5, "g": ["Bardic Inspiration (d8)", "Font of Inspiration \u2014 regain on a short rest"]}, {"l": 6, "g": ["Countercharm", "Additional Magical Secrets (2 spells)"]}, {"l": 8, "g": ["Ability Score Improvement"]}, {"l": 9, "g": ["Song of Rest (d8)"]}, {"l": 10, "g": ["Bardic Inspiration (d10)", "Expertise (2 more skills)", "Magical Secrets (2 spells)", "A fifth cantrip"]}, {"l": 12, "g": ["Ability Score Improvement"]}, {"l": 13, "g": ["Song of Rest (d10)"]}, {"l": 14, "g": ["Magical Secrets (2 spells)", "Peerless Skill"]}, {"l": 15, "g": ["Bardic Inspiration (d12)"]}, {"l": 16, "g": ["Ability Score Improvement"]}, {"l": 17, "g": ["Song of Rest (d12)"]}, {"l": 18, "g": ["Magical Secrets (2 spells)"]}, {"l": 19, "g": ["Ability Score Improvement"]}, {"l": 20, "g": ["Superior Inspiration"]}], "slots": [[2, 0, 0, 0, 0, 0, 0, 0, 0], [3, 0, 0, 0, 0, 0, 0, 0, 0], [4, 2, 0, 0, 0, 0, 0, 0, 0], [4, 3, 0, 0, 0, 0, 0, 0, 0], [4, 3, 2, 0, 0, 0, 0, 0, 0], [4, 3, 3, 0, 0, 0, 0, 0, 0], [4, 3, 3, 1, 0, 0, 0, 0, 0], [4, 3, 3, 2, 0, 0, 0, 0, 0], [4, 3, 3, 3, 1, 0, 0, 0, 0], [4, 3, 3, 3, 2, 0, 0, 0, 0], [4, 3, 3, 3, 2, 1, 0, 0, 0], [4, 3, 3, 3, 2, 1, 0, 0, 0], [4, 3, 3, 3, 2, 1, 1, 0, 0], [4, 3, 3, 3, 2, 1, 1, 0, 0], [4, 3, 3, 3, 2, 1, 1, 1, 0], [4, 3, 3, 3, 2, 1, 1, 1, 0], [4, 3, 3, 3, 2, 1, 1, 1, 1], [4, 3, 3, 3, 3, 1, 1, 1, 1], [4, 3, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 3, 2, 2, 1, 1]]}]);
 }catch(err){
   var mounts = document.querySelectorAll('[id^="session-"]');
   for(var z=0; z<mounts.length; z++){

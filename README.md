@@ -52,3 +52,26 @@ a password that matters.
 
 Forgotten it? Clearing the site's local storage (or the `__gate` key inside the
 Backup data) resets it to unset.
+
+## Installing it on a phone
+
+Open the Pages URL in Safari or Chrome, then Share -> Add to Home Screen. It
+gets its own icon, opens without browser chrome, and works with no signal: a
+service worker caches the page on first visit.
+
+Installing also matters for durability. iOS purges script-written storage for
+sites you have not visited in about a week; an installed web app is not treated
+the same way. Even so, keep a file backup of anything you would hate to retype.
+
+## Backups
+
+The Backup card at the bottom offers, in order of how much they protect you:
+
+- **Save to file** - writes `silver-thread-YYYY-MM-DD.json`. Keep it in Files or
+  iCloud. This is the one that survives a wiped browser or a lost phone.
+- **Load from file** - reads one back. Requires the page to be unlocked.
+- **Show data / Copy** - the same content as one line of text, for pasting into
+  another device directly.
+
+The card also reports whether offline support is active on the device you are
+looking at.

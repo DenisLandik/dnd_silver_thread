@@ -4,6 +4,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#14202B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Silver Thread">
 <script type="application/json" id="sheet-state">{}</script>
 <style id="pagecss">
 
@@ -583,6 +589,15 @@ button[disabled]{opacity:.45;cursor:default}
   font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);
 }
 .gatebar .addbtn{flex:0 0 auto}
+.filebtn{
+  display:inline-block;border:1px solid var(--rule);background:transparent;color:var(--ink-2);
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+  padding:11px 14px;border-radius:2px;cursor:pointer;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.filebtn:active{background:var(--rule-soft)}
+.filebtn input{position:absolute;width:1px;height:1px;opacity:0;clip:rect(0 0 0 0)}
 .gatebox{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
 .gatein{
   flex:1 1 140px;min-width:0;height:44px;padding:6px 10px;
@@ -1778,6 +1793,16 @@ button[disabled]{opacity:.45;cursor:default}
    - card says "script error: ..."       -> script ran, engine threw
    - controls appear                     -> working                     */
 document.documentElement.className += " js-ok";
+/* Install the offline shell when served from a real origin. Skipped inside
+   the artifact viewer, which runs the page in a cross-origin frame. */
+try{
+  if(window.top === window.self && "serviceWorker" in navigator
+     && window.isSecureContext){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+}catch(swErr){}
 function TRACKERS(SHEETS){
   "use strict";
 
@@ -2358,6 +2383,28 @@ function TRACKERS(SHEETS){
     m.className = warn ? "savechip warn" : "savechip";
   }
 
+  /* Whether this copy will open without a signal. Reported rather than assumed,
+     because service workers cannot be exercised from the build environment. */
+  function reportOffline(){
+    var el = document.getElementById("offstate");
+    if(!el) return;
+    function set(t){ el.textContent = t; }
+    try{
+      if(!("serviceWorker" in navigator) || !window.isSecureContext){
+        set("offline use: not available here"); return;
+      }
+      navigator.serviceWorker.getRegistrations().then(function(rs){
+        if(rs && rs.length){
+          set(navigator.serviceWorker.controller
+              ? "offline use: ready — add to home screen to keep it"
+              : "offline use: installing, ready after one reload");
+        }else{
+          set("offline use: not installed");
+        }
+      })["catch"](function(){ set("offline use: unknown"); });
+    }catch(e){ set("offline use: unknown"); }
+  }
+
   function renderBackup(open){
     if(!backupEl) return;
     var h = '<h2>Backup</h2><p class="cap">Carry both characters to another device</p>'
@@ -2365,10 +2412,17 @@ function TRACKERS(SHEETS){
       +   '<button data-bk="toggle">' + (open ? "Hide data" : "Show data") + '</button>'
       +   (open ? '<button class="addbtn" data-bk="copy">Copy</button>' : '')
       +   ((open && !locked) ? '<button data-bk="apply">Apply pasted data</button>' : '')
+      + '</div>'
+      + '<div class="rest-row">'
+      +   '<button data-bk="file">Save to file</button>'
+      +   (locked ? '' : '<label class="filebtn">Load from file'
+      +     '<input type="file" id="bkfile" accept="application/json,.json"></label>')
       + '</div>';
     if(open) h += '<textarea class="notesbox" id="bkbox" rows="6" spellcheck="false" aria-label="Backup data"></textarea>';
-    h += '<p class="savechip" id="bkmsg"></p>';
+    h += '<p class="savechip" id="bkmsg"></p>'
+      +  '<p class="savechip" id="offstate">checking offline support…</p>';
     backupEl.innerHTML = h;
+    reportOffline();
     if(open){
       var box = document.getElementById("bkbox");
       box.value = snapshot();
@@ -2391,6 +2445,28 @@ function TRACKERS(SHEETS){
   }
 
   if(backupEl){
+    backupEl.addEventListener("change", function(e){
+      if(!e.target || e.target.id !== "bkfile") return;
+      var file = e.target.files && e.target.files[0];
+      if(!file) return;
+      if(locked){ bkSay("unlock the page before loading a file", true); return; }
+      var reader = new FileReader();
+      reader.onload = function(){
+        var parsed;
+        try{ parsed = JSON.parse(String(reader.result)); }
+        catch(err){ bkSay("that file is not valid backup data", true); return; }
+        var known = 0;
+        for(var j=0;j<SHEETS.length;j++) if(parsed && parsed[SHEETS[j].id]) known++;
+        if(!known){ bkSay("no characters found in that file", true); return; }
+        rebuildAll(parsed);
+        renderBackup(true);
+        bkSay("loaded " + known + " character" + (known === 1 ? "" : "s") + " from " + file.name);
+        touched();
+      };
+      reader.onerror = function(){ bkSay("could not read that file", true); };
+      reader.readAsText(file);
+    });
+
     backupEl.addEventListener("click", function(e){
       var t = e.target;
       while(t && t !== backupEl && !(t.getAttribute && t.hasAttribute("data-bk"))) t = t.parentNode;
@@ -2398,6 +2474,24 @@ function TRACKERS(SHEETS){
       e.preventDefault();
       var what = t.getAttribute("data-bk");
       if(what === "toggle"){ renderBackup(!document.getElementById("bkbox")); return; }
+
+      if(what === "file"){
+        var name = "silver-thread-" + new Date().toISOString().slice(0, 10) + ".json";
+        try{
+          var blob = new Blob([snapshot()], {type:"application/json"});
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url; a.download = name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+          bkSay("saved as " + name);
+        }catch(err){
+          bkSay("this browser would not save a file — use Copy instead", true);
+        }
+        return;
+      }
 
       if(what === "copy"){
         var src = document.getElementById("bkbox");

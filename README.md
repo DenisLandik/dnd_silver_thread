@@ -15,18 +15,47 @@ private, Pages will refuse to publish until the repo is made public or the
 account is on a paid plan. A public Pages site is readable by anyone with the
 URL — it is not indexed, but it is not protected either.
 
-## Saving
+## Saving, and the shared copy
 
-The page stores its state in the browser's local storage under the key
-`sheets-combined`. That means:
+Every edit is written twice: to this browser's local storage (key
+`sheets-combined`), and to `state.json` on the **`state` branch** of this
+repository. The page reads that file when it opens and whenever the tab is
+brought back to the front, so a change made under the password shows up for
+everyone reading the page - the DM included - without anyone copying anything.
 
-- edits persist on the device that made them, across reloads and restarts;
-- edits do **not** travel between devices on their own;
-- clearing site data for the domain erases them.
+Reading needs no credentials at all. Writing needs a token, which only the
+device that has one can do; everybody else is a reader.
 
-Use the **Backup** card at the bottom of the page to move state between devices:
-*Show data* prints everything as one line of JSON, and pasting that line into the
-box on another device and pressing *Apply pasted data* loads it there.
+### Giving a device permission to write
+
+1. GitHub -> **Settings -> Developer settings -> Personal access tokens ->
+   Fine-grained tokens -> Generate new token**.
+2. Repository access: **Only select repositories** -> this repository.
+3. Permissions -> Repository permissions -> **Contents: Read and write**.
+   Nothing else is needed.
+4. Set whatever expiry suits. Generate, and copy the token once.
+5. Open the page, unlock it, press **Set up sync** at the top right, paste the
+   token, **Save token**.
+
+The token is kept in that browser's local storage under `st-sync-token`. It is
+never part of the state, a backup file, or a saved copy of the page, and it
+never reaches the shared copy. Losing the device means revoking the token on
+GitHub; the worst it can do is edit this one repository.
+
+### What the line under the lock means
+
+- *shared copy: up to date* - this page matches what everyone else sees.
+- *updated from the shared copy* - someone saved elsewhere; this page just took it.
+- *shared with everyone* - this device's save went out.
+- *saved on this device - no sync token here* - a reader's browser, or the token
+  was never set.
+- *newer changes are waiting* - the page is unlocked and a newer copy exists.
+  It is not applied mid-edit; lock the page and it arrives.
+- *offline - showing this device's copy* - no signal. Edits stay local and go out
+  the next time a save succeeds.
+
+Two people editing at once is last-write-wins. There is one editor here, so this
+is a footnote rather than a problem.
 
 ## What is in the page
 
@@ -46,9 +75,11 @@ pips, rests, kit, coin, ability scores and notes. **Save & lock** writes the
 change and returns the page to read-only.
 
 Only a salted SHA-256 hash of the password is stored, alongside the rest of the
-state. Treat this as a guard against accidents, not as security: the check runs
+state - which means it is in the shared copy, and the shared copy is public.
+Treat the password as a guard against accidents, not as security: the check runs
 in the browser, and anyone with developer tools can step around it. Do not reuse
-a password that matters.
+a password that matters. The real authority is the sync token: without one, an
+edit reaches nobody.
 
 Forgotten it? Clearing the site's local storage (or the `__gate` key inside the
 Backup data) resets it to unset.
@@ -72,6 +103,8 @@ The Backup card at the bottom offers, in order of how much they protect you:
 - **Load from file** - reads one back. Requires the page to be unlocked.
 - **Show data / Copy** - the same content as one line of text, for pasting into
   another device directly.
+- The `state` branch is itself a history: every save is a commit, so an older
+  `state.json` can be recovered from it.
 
 The card also reports whether offline support is active on the device you are
 looking at.

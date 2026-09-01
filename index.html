@@ -605,6 +605,7 @@ li.exp .sk-val{color:var(--gold);font-weight:600}
 .lockbtn:active{background:var(--rule-soft)}
 .lockrow .gatein{flex:1 1 130px}
 .pagetop .savechip{text-align:right;margin-top:8px}
+#syncmsg{margin-top:5px;color:var(--ink-3);font-size:11px}
 button[disabled]{opacity:.45;cursor:default}
 .tpip[disabled]{opacity:1}
 .tpip[disabled] i{opacity:.45}
@@ -1882,6 +1883,140 @@ function TRACKERS(SHEETS){
             "catch":function(){ return this; }};
   }
 
+  /* ---------------------------------------------------------------- shared copy
+     The page is a static file, so an edit here reaches nobody else on its own.
+     The state is therefore kept in the repository next to the page: any reader
+     pulls it, and a device holding a write token pushes it back. The token is
+     read from this browser only and is never part of the state, a backup, or a
+     saved copy of the page. */
+  var SYNC = {owner:"DenisLandik", repo:"dnd_silver_thread", branch:"state", path:"state.json"};
+  var TOKEN_KEY = "st-sync-token";
+  var remoteSha = null, savedAt = 0, syncMsg = "", pulling = false, lastPull = 0;
+
+  function ghToken(){ try{ return localStorage.getItem(TOKEN_KEY) || ""; }catch(e){ return ""; } }
+  function setToken(v){
+    try{ if(v) localStorage.setItem(TOKEN_KEY, v); else localStorage.removeItem(TOKEN_KEY); }catch(e){}
+  }
+
+  function ghHeaders(){
+    var hd = {"Accept":"application/vnd.github+json"}, t = ghToken();
+    if(t) hd.Authorization = "Bearer " + t;
+    return hd;
+  }
+  function ghUrl(){
+    return "https://api.github.com/repos/" + SYNC.owner + "/" + SYNC.repo + "/contents/" + SYNC.path;
+  }
+  function ghRead(){ return ghUrl() + "?ref=" + SYNC.branch + "&t=" + Date.now(); }
+
+  function b64enc(s){
+    var bin = "", i;
+    if(window.TextEncoder){
+      var by = new TextEncoder().encode(s);
+      for(i=0;i<by.length;i++) bin += String.fromCharCode(by[i]);
+    }else{
+      bin = unescape(encodeURIComponent(s));
+    }
+    return btoa(bin);
+  }
+  function b64dec(s){
+    var bin = atob(String(s).replace(/\s+/g, "")), i;
+    if(window.TextDecoder){
+      var by = new Uint8Array(bin.length);
+      for(i=0;i<bin.length;i++) by[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(by);
+    }
+    return decodeURIComponent(escape(bin));
+  }
+
+  /* the artifact viewer has its own shared storage and blocks outside requests */
+  function syncOn(){ return !api && !!SYNC.owner && typeof fetch === "function"; }
+
+  function stamp(ms){
+    if(!ms) return "";
+    var d = new Date(ms);
+    return ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+  }
+
+  function syncSay(t, warn){
+    syncMsg = t || "";
+    var m = document.getElementById("syncmsg");
+    if(m){ m.textContent = syncMsg; m.className = warn ? "savechip warn" : "savechip"; }
+  }
+
+  function applyRemote(parsed){
+    if(!parsed || typeof parsed !== "object") return;
+    var when = typeof parsed.__savedAt === "number" ? parsed.__savedAt : 0;
+    if(when <= savedAt){
+      syncSay("shared copy: up to date" + (savedAt ? " · " + stamp(savedAt) : ""));
+      return;
+    }
+    if(dirty || !locked){
+      /* never pull the page out from under someone mid-edit */
+      syncSay("newer changes are waiting — lock the page to take them", true);
+      return;
+    }
+    savedAt = when;
+    rebuildAll(parsed);
+    try{ localStorage.setItem("sheets-combined", JSON.stringify(parsed)); }catch(e){}
+    syncSay("updated from the shared copy · " + stamp(when));
+  }
+
+  function syncPull(quiet){
+    if(!syncOn() || pulling) return;
+    /* unauthenticated reads are rate limited per address; do not spend them */
+    if(quiet && Date.now() - lastPull < 30000) return;
+    lastPull = Date.now();
+    pulling = true;
+    if(!quiet) syncSay("checking the shared copy…");
+    fetch(ghRead(), {headers: ghHeaders(), cache:"no-store"}).then(function(res){
+      pulling = false;
+      if(res.status === 404){ syncSay("shared copy: none yet"); return null; }
+      if(!res.ok){ syncSay("shared copy unreachable (" + res.status + ")", true); return null; }
+      return res.json().then(function(j){
+        remoteSha = j.sha || null;
+        var parsed;
+        try{ parsed = JSON.parse(b64dec(j.content || "")); }
+        catch(e){ syncSay("the shared copy is not readable", true); return; }
+        applyRemote(parsed);
+      });
+    })["catch"](function(){
+      pulling = false;
+      syncSay("offline — showing this device's copy");
+    });
+  }
+
+  function syncPush(payload, retried){
+    if(!syncOn()) return;
+    if(!ghToken()){ syncSay("saved on this device — no sync token here"); return; }
+    syncSay("sending to the shared copy…");
+    var body = {message:"Update character state", content:b64enc(payload), branch:SYNC.branch};
+    if(remoteSha) body.sha = remoteSha;
+    fetch(ghUrl(), {method:"PUT", headers: ghHeaders(), body: JSON.stringify(body)}).then(function(res){
+      if(res.ok){
+        return res.json().then(function(j){
+          remoteSha = (j.content && j.content.sha) || remoteSha;
+          syncSay("shared with everyone · " + stamp(savedAt));
+        });
+      }
+      if((res.status === 409 || res.status === 422) && !retried){
+        /* the file moved under us: take the current revision and write over it */
+        return fetch(ghRead(), {headers: ghHeaders(), cache:"no-store"})
+          .then(function(r2){ return r2.ok ? r2.json() : null; })
+          .then(function(j2){
+            if(!j2){ syncSay("could not send (" + res.status + ")", true); return; }
+            remoteSha = j2.sha || null;
+            syncPush(payload, 1);
+          });
+      }
+      if(res.status === 401 || res.status === 403){
+        syncSay("the sync token was refused — set it again", true); return;
+      }
+      syncSay("could not send (" + res.status + ")", true);
+    })["catch"](function(){
+      syncSay("could not reach GitHub — saved on this device", true);
+    });
+  }
+
   var lockEl = document.getElementById("lock");
 
   function lockMsg(t, warn){
@@ -1889,9 +2024,26 @@ function TRACKERS(SHEETS){
     if(m){ m.textContent = t || ""; m.className = warn ? "savechip warn" : "savechip"; }
   }
 
+  function syncLine(){
+    return '<p class="savechip" id="syncmsg">' + esc(syncMsg) + '</p>';
+  }
+
   function renderLock(form){
     if(!lockEl) return;
     var h2;
+    if(form === "sync"){
+      h2 = '<div class="lockrow">'
+        + '<input class="gatein" id="synctok" type="password" autocomplete="off" spellcheck="false" placeholder="'
+        + (ghToken() ? "Replace the stored token" : "GitHub token") + '" aria-label="GitHub sync token">'
+        + '<button class="addbtn" data-lock="synctok">Save token</button>'
+        + (ghToken() ? '<button class="lockbtn" data-lock="syncdrop">Remove</button>' : '')
+        + '<button class="lockbtn" data-lock="cancel">Cancel</button>'
+        + '</div><p class="savechip" id="lockmsg">A fine-grained token for this repository only, '
+        + 'Contents: read and write. It stays in this browser.</p>';
+      lockEl.innerHTML = h2;
+      var tf = document.getElementById("synctok"); if(tf) tf.focus();
+      return;
+    }
     if(form){
       h2 = '<div class="lockrow">'
         + '<input class="gatein" id="lockpw" type="password" autocomplete="new-password" placeholder="'
@@ -1903,10 +2055,14 @@ function TRACKERS(SHEETS){
         + '</div><p class="savechip" id="lockmsg"></p>';
     }else if(locked){
       h2 = '<div class="lockrow"><span class="lockstate">Read-only</span>'
-        + '<button class="lockbtn" data-lock="open">' + (gate.hash ? "Unlock to edit" : "Set a password") + '</button></div>';
+        + (syncOn() ? '<button class="lockbtn" data-lock="refresh">Refresh</button>' : '')
+        + '<button class="lockbtn" data-lock="open">' + (gate.hash ? "Unlock to edit" : "Set a password") + '</button></div>'
+        + syncLine();
     }else{
       h2 = '<div class="lockrow open"><span class="lockstate">Editing</span>'
-        + '<button class="addbtn" data-lock="lock">Save &amp; lock</button></div>';
+        + (syncOn() ? '<button class="lockbtn" data-lock="sync">' + (ghToken() ? "Sync token" : "Set up sync") + '</button>' : '')
+        + '<button class="addbtn" data-lock="lock">Save &amp; lock</button></div>'
+        + syncLine();
     }
     lockEl.innerHTML = h2;
     if(form){ var f = document.getElementById("lockpw"); if(f) f.focus(); }
@@ -1929,10 +2085,29 @@ function TRACKERS(SHEETS){
 
       if(what === "open")   return renderLock(true);
       if(what === "cancel") return renderLock(false);
+      if(what === "sync")   return renderLock("sync");
+      if(what === "refresh"){ lastPull = 0; syncPull(); return; }
+      if(what === "syncdrop"){
+        setToken("");
+        renderLock(false);
+        syncSay("sync token removed — this device now reads only");
+        return;
+      }
+      if(what === "synctok"){
+        var tk = (document.getElementById("synctok") || {}).value || "";
+        if(!tk){ lockMsg("paste the token first", true); return; }
+        setToken(tk.replace(/\s+/g, ""));
+        renderLock(false);
+        syncSay("token saved — checking the shared copy\u2026");
+        lastPull = 0;
+        syncPull(true);
+        return;
+      }
       if(what === "lock"){
         locked = true;
         renderAllViews();
         if(timer){ clearTimeout(timer); commit(); }
+        else syncPull(true);
         return;
       }
 
@@ -1967,7 +2142,7 @@ function TRACKERS(SHEETS){
     lockEl.addEventListener("keydown", function(e){
       if(e.key !== "Enter" || !e.target || e.target.className.indexOf("gatein") === -1) return;
       e.preventDefault();
-      var b = lockEl.querySelector('[data-lock="save"],[data-lock="try"]');
+      var b = lockEl.querySelector('[data-lock="save"],[data-lock="try"],[data-lock="synctok"]');
       if(b) b.click();
     });
   }
@@ -1980,6 +2155,7 @@ function TRACKERS(SHEETS){
     gate.alg  = rawAll.__gate.alg || null;
     gate.hash = rawAll.__gate.hash || null;
   }
+  if(typeof rawAll.__savedAt === "number") savedAt = rawAll.__savedAt;
 
   function say(msg, warn){
     for(var i=0;i<chips.length;i++){
@@ -2554,6 +2730,7 @@ function TRACKERS(SHEETS){
     var out = {};
     for(var j=0;j<views.length;j++) out[views[j].id] = views[j].state();
     if(gate.hash) out.__gate = gate;
+    out.__savedAt = savedAt || Date.now();
     return JSON.stringify(out);
   }
 
@@ -2631,12 +2808,14 @@ function TRACKERS(SHEETS){
       gate.alg = raw.__gate.alg || null;
       gate.hash = raw.__gate.hash || null;
     }
+    if(typeof raw.__savedAt === "number") savedAt = raw.__savedAt;
     locked = true;
     views = [];
     chips = [];
     for(var j=0;j<SHEETS.length;j++) views.push(makeView(SHEETS[j]));
     for(j=0;j<views.length;j++) views[j].render();
     renderBackup(!!document.getElementById("bkbox"));
+    renderLock(false);          /* the page just went read-only; say so */
   }
 
   if(backupEl){
@@ -2771,6 +2950,8 @@ function TRACKERS(SHEETS){
     var out = {};
     for(var j=0;j<views.length;j++) out[views[j].id] = views[j].state();
     if(gate.hash) out.__gate = gate;
+    savedAt = Date.now();
+    out.__savedAt = savedAt;
     var payload = JSON.stringify(out);
     if(api){
       var doc = buildDoc(payload);
@@ -2783,8 +2964,9 @@ function TRACKERS(SHEETS){
           say("not saved (" + (code || "error") + ")", true);
         });
     }else{
-      try{ localStorage.setItem("sheets-combined", payload); dirty = false; say("saved on this device only"); }
+      try{ localStorage.setItem("sheets-combined", payload); dirty = false; say("saved"); }
       catch(e){ say("could not save here", true); }
+      syncPush(payload);
     }
   }
 
@@ -2810,11 +2992,18 @@ function TRACKERS(SHEETS){
       var local = localStorage.getItem("sheets-combined");
       if(local) rebuildAll(JSON.parse(local) || {});   /* also restores the gate */
     }catch(e){}
-    say("changes save on this device only");
+    say(ghToken() ? "changes save here and to the shared copy" : "changes save on this device");
+    renderLock(false);
+    syncPull();
   }
 
+  /* coming back to the tab is the moment a stale sheet gets noticed */
+  document.addEventListener("visibilitychange", function(){
+    if(!document.hidden) syncPull(true);
+  });
+
   if(window.claude && typeof window.claude.use === "function"){
-    window.claude.use("artifact").then(function(got){ api = got; if(!api) offline(); })["catch"](function(){ offline(); });
+    window.claude.use("artifact").then(function(got){ api = got; if(!api) offline(); else renderLock(false); })["catch"](function(){ offline(); });
   }else{
     offline();
   }

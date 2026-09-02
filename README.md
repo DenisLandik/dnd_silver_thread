@@ -28,14 +28,20 @@ device that has one can do; everybody else is a reader.
 
 ### Giving a device permission to write
 
+Unlock the page and press **Set up sync** at the top right. The panel that opens
+walks through it and links straight to the right GitHub page; in short:
+
 1. GitHub -> **Settings -> Developer settings -> Personal access tokens ->
    Fine-grained tokens -> Generate new token**.
 2. Repository access: **Only select repositories** -> this repository.
 3. Permissions -> Repository permissions -> **Contents: Read and write**.
    Nothing else is needed.
 4. Set whatever expiry suits. Generate, and copy the token once.
-5. Open the page, unlock it, press **Set up sync** at the top right, paste the
-   token, **Save token**.
+5. Paste it into the panel and press **Save and test**.
+
+*Save and test* performs a real write, so the line under the lock answers
+immediately: *shared with everyone* means it worked, and anything else names
+which of the steps above to go back to.
 
 The token is kept in that browser's local storage under `st-sync-token`. It is
 never part of the state, a backup file, or a saved copy of the page, and it

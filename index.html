@@ -606,6 +606,17 @@ li.exp .sk-val{color:var(--gold);font-weight:600}
 .lockrow .gatein{flex:1 1 130px}
 .pagetop .savechip{text-align:right;margin-top:8px}
 #syncmsg{margin-top:5px;color:var(--ink-3);font-size:11px}
+.syncsetup{
+  max-width:520px;margin-left:auto;text-align:left;
+  border:1px solid var(--rule);border-left:3px solid var(--gold);
+  border-radius:3px;padding:13px 15px;background:var(--paper);
+}
+.syncwhy{margin:0 0 9px;font-size:14.5px;line-height:1.5;color:var(--ink-2)}
+.syncsteps{margin:0 0 11px;padding-left:20px;font-size:14px;line-height:1.55;color:var(--ink-2)}
+.syncsteps li{margin-bottom:5px}
+.syncsteps a{color:var(--red)}
+.syncsetup .lockrow{justify-content:flex-start}
+.syncsetup .savechip{text-align:left;margin-top:9px;line-height:1.45}
 button[disabled]{opacity:.45;cursor:default}
 .tpip[disabled]{opacity:1}
 .tpip[disabled] i{opacity:.45}
@@ -2008,8 +2019,14 @@ function TRACKERS(SHEETS){
             syncPush(payload, 1);
           });
       }
-      if(res.status === 401 || res.status === 403){
-        syncSay("the sync token was refused — set it again", true); return;
+      if(res.status === 401){
+        syncSay("GitHub did not recognise that token — copy it again", true); return;
+      }
+      if(res.status === 403){
+        syncSay("that token may not write here — check step 3, Contents: read and write", true); return;
+      }
+      if(res.status === 404){
+        syncSay("that token cannot see this repository — check step 2", true); return;
       }
       syncSay("could not send (" + res.status + ")", true);
     })["catch"](function(){
@@ -2032,14 +2049,30 @@ function TRACKERS(SHEETS){
     if(!lockEl) return;
     var h2;
     if(form === "sync"){
-      h2 = '<div class="lockrow">'
+      h2 = '<div class="syncsetup">'
+        + '<p class="syncwhy">Everyone who opens this page reads the same sheet. Saving a change '
+        + 'writes it back, and GitHub only accepts a write from a device holding a <b>token</b> \u2014 '
+        + 'a long password it issues for one repository. Set it once per device.</p>'
+        + '<ol class="syncsteps">'
+        + '<li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">'
+        + 'Open GitHub\u2019s token page</a>, and sign in if it asks.</li>'
+        + '<li>Give it any name. Under <b>Repository access</b> choose <b>Only select repositories</b> '
+        + 'and pick <b>' + esc(SYNC.repo) + '</b>.</li>'
+        + '<li>Under <b>Permissions \u2192 Repository permissions</b>, set <b>Contents</b> to '
+        + '<b>Read and write</b>. Leave everything else alone.</li>'
+        + '<li>Press <b>Generate token</b>, copy the line it shows, and paste it below. '
+        + 'GitHub shows it once.</li>'
+        + '</ol>'
+        + '<div class="lockrow">'
         + '<input class="gatein" id="synctok" type="password" autocomplete="off" spellcheck="false" placeholder="'
-        + (ghToken() ? "Replace the stored token" : "GitHub token") + '" aria-label="GitHub sync token">'
-        + '<button class="addbtn" data-lock="synctok">Save token</button>'
+        + (ghToken() ? "Replace the stored token" : "Paste the token here") + '" aria-label="GitHub sync token">'
+        + '<button class="addbtn" data-lock="synctok">Save and test</button>'
         + (ghToken() ? '<button class="lockbtn" data-lock="syncdrop">Remove</button>' : '')
         + '<button class="lockbtn" data-lock="cancel">Cancel</button>'
-        + '</div><p class="savechip" id="lockmsg">A fine-grained token for this repository only, '
-        + 'Contents: read and write. It stays in this browser.</p>';
+        + '</div>'
+        + '<p class="savechip" id="lockmsg">The token stays in this browser. It is never part of the '
+        + 'sheet, a backup file, or a saved copy of the page. Revoke it on GitHub to undo this.</p>'
+        + '</div>';
       lockEl.innerHTML = h2;
       var tf = document.getElementById("synctok"); if(tf) tf.focus();
       return;
@@ -2098,9 +2131,9 @@ function TRACKERS(SHEETS){
         if(!tk){ lockMsg("paste the token first", true); return; }
         setToken(tk.replace(/\s+/g, ""));
         renderLock(false);
-        syncSay("token saved — checking the shared copy\u2026");
         lastPull = 0;
-        syncPull(true);
+        syncSay("testing the token\u2026");
+        commit();          /* an actual write is the only honest test */
         return;
       }
       if(what === "lock"){

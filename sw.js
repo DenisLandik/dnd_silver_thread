@@ -1,7 +1,7 @@
 /* Silver Thread Party - offline shell.
    The sheet is one big HTML file, so caching it is the whole job. Bump CACHE
    when the page changes; the old cache is dropped on activate. */
-var CACHE = "silver-thread-v9";
+var CACHE = "silver-thread-v10";
 var ASSETS = ["./", "./index.html", "./manifest.webmanifest",
               "./icon-192.png", "./icon-512.png", "./icon-maskable.png", "./apple-touch-icon.png"];
 

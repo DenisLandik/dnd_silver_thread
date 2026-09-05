@@ -2137,6 +2137,7 @@ function TRACKERS(SHEETS){
         return;
       }
       if(what === "lock"){
+        for(var q=0;q<views.length;q++) if(views[q].flush) views[q].flush();
         locked = true;
         renderAllViews();
         if(timer){ clearTimeout(timer); commit(); }
@@ -2540,17 +2541,24 @@ function TRACKERS(SHEETS){
       }
       packEl.innerHTML = h;
     }
-    function addItem(){
+    function addItem(quiet){
       var f = el("additem");
-      if(!f) return;
+      if(!f) return false;
       var v = f.value.replace(/\s+/g, " ").trim();
-      if(!v) return;
+      if(!v) return false;
       S.items.push({t:v, g:""});
-      renderPack(false);
-      var again = el("additem");
-      if(again) again.focus();
+      f.value = "";
+      if(!quiet){
+        renderPack(false);
+        var again = el("additem");
+        if(again) again.focus();
+      }
       touched();
+      return true;
     }
+
+    /* whatever is still typed counts as an item the moment editing ends */
+    function flushItem(){ return editing ? addItem(true) : false; }
 
     /* ---- purse ---- */
     function coinField(k, label){
@@ -2695,7 +2703,12 @@ function TRACKERS(SHEETS){
         if(!t) return;
         e.preventDefault();
         if(locked){ say("unlock the page to change the kit", true); return; }
-        if(t.hasAttribute("data-edit")){ editing = !editing; renderPack(!editing); return; }
+        if(t.hasAttribute("data-edit")){
+          flushItem();                    /* Done keeps the half-typed item */
+          editing = !editing;
+          renderPack(!editing);
+          return;
+        }
         if(t.hasAttribute("data-rm")){
           S.items.splice(parseInt(t.getAttribute("data-rm"), 10), 1);
           renderPack(false); touched(); return;
@@ -2744,6 +2757,7 @@ function TRACKERS(SHEETS){
       id: SHEET.id,
       state: function(){ return S; },
       relabel: function(){ renderLevel(); renderFeats(); },
+      flush: flushItem,
       render: renderAll,
       refreshAbil: function(){ if(AB) renderAbilities(); },
       resize: function(){ autosize(el("notesbox")); },
@@ -3047,9 +3061,17 @@ function TRACKERS(SHEETS){
     syncPull();
   }
 
-  /* coming back to the tab is the moment a stale sheet gets noticed */
+  /* coming back to the tab is the moment a stale sheet gets noticed; going
+     away is the last chance to write, since iOS does not fire beforeunload */
   document.addEventListener("visibilitychange", function(){
-    if(!document.hidden) syncPull(true);
+    if(document.hidden){
+      if(dirty && timer){ clearTimeout(timer); commit(); }
+      return;
+    }
+    syncPull(true);
+  });
+  window.addEventListener("pagehide", function(){
+    if(dirty && timer){ clearTimeout(timer); commit(); }
   });
 
   if(window.claude && typeof window.claude.use === "function"){

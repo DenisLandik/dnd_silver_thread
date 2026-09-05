@@ -2526,9 +2526,13 @@ function TRACKERS(SHEETS){
     }
     function renderPack(readOnly){
       if(!packEl) return;
-      var h = (locked ? '' : '<div class="packbar"><button class="editbtn" data-edit="1">' + (readOnly ? "Edit" : "Done") + '</button></div>')
-            + itemsHTML(locked ? true : readOnly);
-      if(!readOnly){
+      /* a locked page is never mid-edit: leaving this set is what kept the
+         add row on screen long after it had stopped working */
+      if(locked) editing = false;
+      var ro = locked ? true : readOnly;
+      var h = (locked ? '' : '<div class="packbar"><button class="editbtn" data-edit="1">' + (ro ? "Edit" : "Done") + '</button></div>')
+            + itemsHTML(ro);
+      if(!ro){
         h += '<div class="addrow">'
           +    '<input class="additem" id="additem-' + ns + '" type="text" placeholder="Add an item" aria-label="New item">'
           +    '<button class="addbtn" data-add="1">Add</button>'
@@ -2688,8 +2692,9 @@ function TRACKERS(SHEETS){
     if(packEl){
       packEl.addEventListener("click", function(e){
         var t = nearest(e.target, packEl);
-        if(!t || locked) return;
+        if(!t) return;
         e.preventDefault();
+        if(locked){ say("unlock the page to change the kit", true); return; }
         if(t.hasAttribute("data-edit")){ editing = !editing; renderPack(!editing); return; }
         if(t.hasAttribute("data-rm")){
           S.items.splice(parseInt(t.getAttribute("data-rm"), 10), 1);
@@ -2698,7 +2703,10 @@ function TRACKERS(SHEETS){
         if(t.hasAttribute("data-add")) addItem();
       });
       packEl.addEventListener("keydown", function(e){
-        if(e.target && e.target.id === "additem-" + ns && e.key === "Enter"){ e.preventDefault(); addItem(); }
+        if(!e.target || e.target.id !== "additem-" + ns || e.key !== "Enter") return;
+        e.preventDefault();
+        if(locked){ say("unlock the page to change the kit", true); return; }
+        addItem();
       });
     }
 

@@ -2252,20 +2252,26 @@ function TRACKERS(SHEETS){
 
     loadFrom(rawAll[SHEET.id]);
 
-    if(!S.items){
-      S.items = [];
-      if(packEl){
-        var lis = packEl.querySelectorAll("li");
-        for(i=0;i<lis.length;i++){
-          var nameEl = lis[i].querySelector(".sk-name") || lis[i];
-          var tagEl  = nameEl.querySelector(".ab-tag");
-          var tag    = tagEl ? tagEl.textContent.replace(/\s+/g, " ").trim() : "";
-          var txt    = nameEl.textContent.replace(/\s+/g, " ").trim();
-          if(tag && txt.slice(-tag.length) === tag) txt = txt.slice(0, -tag.length).trim();
-          if(txt) S.items.push({t:txt, g:tag});
-        }
+    /* The kit printed in the page is the fallback for state that carries none.
+       Read once, here, while the markup is still the page's own. */
+    var BASE_ITEMS = [];
+    if(packEl){
+      var lis = packEl.querySelectorAll("li");
+      for(i=0;i<lis.length;i++){
+        var nameEl = lis[i].querySelector(".sk-name") || lis[i];
+        var tagEl  = nameEl.querySelector(".ab-tag");
+        var tag    = tagEl ? tagEl.textContent.replace(/\s+/g, " ").trim() : "";
+        var txt    = nameEl.textContent.replace(/\s+/g, " ").trim();
+        if(tag && txt.slice(-tag.length) === tag) txt = txt.slice(0, -tag.length).trim();
+        if(txt) BASE_ITEMS.push({t:txt, g:tag});
       }
     }
+    function baseItems(){
+      var out = [];
+      for(var z=0;z<BASE_ITEMS.length;z++) out.push({t:BASE_ITEMS[z].t, g:BASE_ITEMS[z].g});
+      return out;
+    }
+    if(!S.items) S.items = baseItems();
     if(!S.coin) S.coin = {gp:num(SHEET.coin && SHEET.coin.gp), sp:num(SHEET.coin && SHEET.coin.sp), cp:num(SHEET.coin && SHEET.coin.cp)};
     if(AB && !S.scores){ S.scores = {}; for(var q in AB.scores) S.scores[q] = AB.scores[q]; }
 
@@ -2755,6 +2761,21 @@ function TRACKERS(SHEETS){
       });
     }
 
+    /* Re-reading in place is the whole point: constructing another view would
+       leave this one's listeners bound to the same nodes, and every click would
+       then be handled twice against two different states. */
+    function reload(){
+      S = {v:1, level:SHEET.level, hpMax:SHEET.hpMax, hp:SHEET.hpMax, temp:0,
+           spent:{}, items:null, coin:null, scores:null, notes:""};
+      for(var z=0;z<SHEET.res.length;z++) S.spent[SHEET.res[z].k] = 0;
+      editing = false;
+      loadFrom(rawAll[SHEET.id]);
+      if(!S.items) S.items = baseItems();
+      if(!S.coin) S.coin = {gp:num(SHEET.coin && SHEET.coin.gp), sp:num(SHEET.coin && SHEET.coin.sp), cp:num(SHEET.coin && SHEET.coin.cp)};
+      if(AB && !S.scores){ S.scores = {}; for(var q2 in AB.scores) S.scores[q2] = AB.scores[q2]; }
+      renderAll();
+    }
+
     function renderAll(){
       renderLevel(); renderFeats();
       clampSpent();
@@ -2771,6 +2792,7 @@ function TRACKERS(SHEETS){
       state: function(){ return S; },
       relabel: function(){ renderLevel(); renderFeats(); },
       flush: flushItem,
+      reload: reload,
       render: renderAll,
       refreshAbil: function(){ if(AB) renderAbilities(); },
       resize: function(){ autosize(el("notesbox")); },
@@ -2887,10 +2909,10 @@ function TRACKERS(SHEETS){
     }
     if(typeof raw.__savedAt === "number") savedAt = raw.__savedAt;
     locked = true;
-    views = [];
     chips = [];
-    for(var j=0;j<SHEETS.length;j++) views.push(makeView(SHEETS[j]));
-    for(j=0;j<views.length;j++) views[j].render();
+    var j;
+    if(!views.length) for(j=0;j<SHEETS.length;j++) views.push(makeView(SHEETS[j]));
+    for(j=0;j<views.length;j++) views[j].reload();
     renderBackup(!!document.getElementById("bkbox"));
     renderLock(false);          /* the page just went read-only; say so */
   }

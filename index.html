@@ -2715,6 +2715,19 @@ function TRACKERS(SHEETS){
         }
         if(t.hasAttribute("data-add")) addItem();
       });
+      /* blur does not bubble, so this listens on the way down */
+      packEl.addEventListener("blur", function(e){
+        if(!e.target || e.target.id !== "additem-" + ns || locked || !editing) return;
+        var pending = e.target.value.replace(/\s+/g, " ").trim();
+        if(!pending) return;
+        /* give a tap on Add, Enter or Done the chance to take it first */
+        setTimeout(function(){
+          var f = el("additem");
+          if(!f || f.value.replace(/\s+/g, " ").trim() !== pending) return;
+          if(addItem(true)) renderPack(false);
+        }, 250);
+      }, true);
+
       packEl.addEventListener("keydown", function(e){
         if(!e.target || e.target.id !== "additem-" + ns || e.key !== "Enter") return;
         e.preventDefault();
@@ -3064,15 +3077,15 @@ function TRACKERS(SHEETS){
   /* coming back to the tab is the moment a stale sheet gets noticed; going
      away is the last chance to write, since iOS does not fire beforeunload */
   document.addEventListener("visibilitychange", function(){
-    if(document.hidden){
-      if(dirty && timer){ clearTimeout(timer); commit(); }
-      return;
-    }
+    if(document.hidden){ leaving(); return; }
     syncPull(true);
   });
-  window.addEventListener("pagehide", function(){
+  window.addEventListener("pagehide", leaving);
+
+  function leaving(){
+    for(var q=0;q<views.length;q++) if(views[q].flush) views[q].flush();
     if(dirty && timer){ clearTimeout(timer); commit(); }
-  });
+  }
 
   if(window.claude && typeof window.claude.use === "function"){
     window.claude.use("artifact").then(function(got){ api = got; if(!api) offline(); else renderLock(false); })["catch"](function(){ offline(); });

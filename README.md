@@ -96,6 +96,15 @@ Open the Pages URL in Safari or Chrome, then Share -> Add to Home Screen. It
 gets its own icon, opens without browser chrome, and works with no signal: a
 service worker caches the page on first visit.
 
+### Which build am I looking at?
+
+Under the lock at the top right the page stamps its own build date and time, in
+plain markup that is right even if the script never runs. Next to it, **check
+for update** asks the service worker for a fresh copy and reloads - the cache is
+deliberately cache-first, so without that a phone can keep serving yesterday's
+page for a while. If the stamp does not move after pressing it, the page really
+is the newest one published.
+
 Installing also matters for durability. iOS purges script-written storage for
 sites you have not visited in about a week; an installed web app is not treated
 the same way. Even so, keep a file backup of anything you would hate to retype.

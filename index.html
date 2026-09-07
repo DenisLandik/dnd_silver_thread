@@ -606,6 +606,19 @@ li.exp .sk-val{color:var(--gold);font-weight:600}
 .lockrow .gatein{flex:1 1 130px}
 .pagetop .savechip{text-align:right;margin-top:8px}
 #syncmsg{margin-top:5px;color:var(--ink-3);font-size:11px}
+.buildstamp{
+  text-align:right;margin:7px 0 0;
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);
+}
+.bldbtn{
+  appearance:none;border:1px solid var(--rule);background:transparent;color:var(--ink-3);
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
+  padding:5px 9px;border-radius:2px;cursor:pointer;margin-left:9px;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.bldbtn:active{background:var(--rule-soft)}
 .syncsetup{
   max-width:520px;margin-left:auto;text-align:left;
   border:1px solid var(--rule);border-left:3px solid var(--gold);
@@ -752,8 +765,11 @@ button[disabled]{opacity:.45;cursor:default}
 <div class="wrap">
   <input class="csw" type="radio" name="who" id="c-a" checked>
   <input class="csw" type="radio" name="who" id="c-m">
-  <div id="lock" class="pagetop">
-    <div class="lockrow"><span class="lockstate">Read-only</span></div>
+  <div class="pagetop">
+    <div id="lock">
+      <div class="lockrow"><span class="lockstate">Read-only</span></div>
+    </div>
+    <p class="buildstamp" id="buildstamp">build 2026-09-07 23:38</p>
   </div>
   <nav class="who" aria-label="Character">
     <label for="c-a">Alaricks<small>Dragonborn Pugilist</small></label>
@@ -2032,6 +2048,39 @@ function TRACKERS(SHEETS){
     })["catch"](function(){
       syncSay("could not reach GitHub — saved on this device", true);
     });
+  }
+
+  /* ------------------------------------------------------------ build stamp
+     The stamp itself is static markup, so it is right even when the script
+     below never runs. The button is the useful half: a cache-first service
+     worker will happily serve yesterday's page until something asks. */
+  var swBusy = false;
+
+  function checkUpdate(){
+    var b = document.getElementById("swupdate");
+    if(!b || swBusy) return;
+    swBusy = true;
+    b.textContent = "checking\u2026";
+    var done = false;
+    function go(){ if(!done){ done = true; location.reload(); } }
+    try{
+      navigator.serviceWorker.addEventListener("controllerchange", go);
+      navigator.serviceWorker.getRegistrations().then(function(rs){
+        if(!rs.length){ b.textContent = "not installed"; swBusy = false; return; }
+        var jobs = [];
+        for(var i=0;i<rs.length;i++) jobs.push(rs[i].update());
+        Promise.all(jobs)["catch"](function(){});
+        /* reload regardless: a worker that found nothing new never fires */
+        setTimeout(go, 2500);
+      })["catch"](go);
+    }catch(e){ go(); }
+  }
+
+  var stamp = document.getElementById("buildstamp");
+  if(stamp && ("serviceWorker" in navigator) && window.isSecureContext){
+    stamp.innerHTML += ' <button class="bldbtn" id="swupdate">check for update</button>';
+    var ub = document.getElementById("swupdate");
+    if(ub) ub.addEventListener("click", function(e){ e.preventDefault(); checkUpdate(); });
   }
 
   var lockEl = document.getElementById("lock");

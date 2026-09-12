@@ -769,7 +769,7 @@ button[disabled]{opacity:.45;cursor:default}
     <div id="lock">
       <div class="lockrow"><span class="lockstate">Read-only</span></div>
     </div>
-    <p class="buildstamp" id="buildstamp">build 2026-09-12 17:39</p>
+    <p class="buildstamp" id="buildstamp">build 2026-09-12 17:58</p>
   </div>
   <nav class="who" aria-label="Character">
     <label for="c-a">Alaricks<small>Dragonborn Pugilist</small></label>
@@ -1437,33 +1437,88 @@ button[disabled]{opacity:.45;cursor:default}
 
     <section class="card">
       <h2>Cantrips</h2>
-      <p class="cap">At will</p>
-      <ul class="lines">
-        <li><span class="dot on"></span><span class="sk-name">Prestidigitation</span></li>
-        <li><span class="dot on"></span><span class="sk-name">Mending</span></li>
-        <li><span class="dot on"></span><span class="sk-name">Vicious Mockery <span class="ab-tag"><span data-calc="m:vmdice">1d4</span> psychic &middot; Wis save</span></span></li>
-      </ul>
+      <p class="cap">At will &middot; no slot</p>
+      <p>Tap a spell for what it does.</p>
+      <details class="move">
+        <summary>Prestidigitation <span class="cost">Action &middot; 10 ft</span></summary>
+        <div class="move-body">
+          <p class="meta">Up to 1 hour &middot; three effects at once</p>
+          <p>Small magic for small moments. A harmless sensory flourish &mdash; a shower of sparks, a puff of wind, a faint tune, a smell. Light or snuff a candle or a small campfire. Clean or soil something no bigger than a cubic foot. Chill, warm or flavour that much nonliving material for an hour. Colour or mark an object or surface for an hour. Conjure a trinket or a tiny illusion in your hand that lasts until the end of your next turn. <strong>Her stage kit.</strong></p>
+        </div>
+      </details>
+      <details class="move">
+        <summary>Mending <span class="cost">1 minute &middot; Touch</span></summary>
+        <div class="move-body">
+          <p class="meta">Instantaneous</p>
+          <p>Closes a single break or tear in an object you touch &mdash; a snapped chain link, a torn cloak, a cracked bottle &mdash; provided the damage is no more than a foot across. Leaves no trace. Can restore the body of a magic item or a construct, but not any magic it had lost.</p>
+        </div>
+      </details>
+      <details class="move">
+        <summary>Vicious Mockery <span class="cost">Action &middot; 60 ft</span></summary>
+        <div class="move-body">
+          <p class="meta">Wis save DC <span data-calc="m:spelldc">14</span> &middot; <span data-calc="m:vmdice">1d4</span> psychic &middot; instantaneous</p>
+          <p>One insult, delivered with intent. A creature you can see that can hear you makes a Wisdom save. On a failure it takes the psychic damage and has <strong>disadvantage on its next attack roll</strong> before the end of its next turn. On a success, nothing. Steps up to 2d4 at 5th level. <strong>Her cantrip of choice in a fight</strong> &mdash; the damage is small, the disadvantage is the point.</p>
+        </div>
+      </details>
     </section>
 
     <section class="card">
       <h2>1st Level</h2>
-      <p class="cap">4 slots</p>
-      <ul class="lines">
-        <li><span class="dot on"></span><span class="sk-name">Command <span class="ab-tag">Wis save</span></span></li>
-        <li><span class="dot on"></span><span class="sk-name">Dissonant Whispers <span class="ab-tag">3d6 psychic</span></span></li>
-        <li><span class="dot on"></span><span class="sk-name">Healing Word <span class="ab-tag">bonus action</span></span></li>
-        <li><span class="dot on"></span><span class="sk-name">Silvery Barbs <span class="ab-tag">reaction</span></span></li>
-      </ul>
+      <p class="cap"><span data-calc="m:slots1">4</span> slots &middot; long rest</p>
+      <details class="move">
+        <summary>Command <span class="cost">Action &middot; 60 ft</span></summary>
+        <div class="move-body">
+          <p class="meta">Wis save DC <span data-calc="m:spelldc">14</span> &middot; 1 round</p>
+          <p>Speak a one-word order to a creature you can see that understands you. Wisdom save, or it obeys on its next turn. The classics: <strong>Approach</strong>, <strong>Drop</strong>, <strong>Flee</strong>, <strong>Grovel</strong> (falls prone, turn ends), <strong>Halt</strong>. No effect on undead, or on an order that would directly harm it. Each slot above 1st adds a target.</p>
+        </div>
+      </details>
+      <details class="move">
+        <summary>Dissonant Whispers <span class="cost">Action &middot; 60 ft</span></summary>
+        <div class="move-body">
+          <p class="meta">Wis save DC <span data-calc="m:spelldc">14</span> &middot; 3d6 psychic &middot; instantaneous</p>
+          <p>A creature you choose hears a melody only it can hear. Wisdom save: on a failure it takes 3d6 psychic and <strong>must use its reaction to run</strong> as far as its speed allows away from you &mdash; which <strong>provokes opportunity attacks</strong> from everyone it passes. Half damage and no running on a success. A creature that cannot hear you passes automatically. Each slot above 1st adds 1d6.</p>
+        </div>
+      </details>
+      <details class="move">
+        <summary>Healing Word <span class="cost">Bonus &middot; 60 ft</span></summary>
+        <div class="move-body">
+          <p class="meta">1d4 <span data-calc="m:chamod">+4</span> &middot; instantaneous</p>
+          <p>A creature you can see regains <strong>1d4 + your Charisma modifier</strong> hit points, at range, without leaving your hands free. No effect on undead or constructs. Each slot above 1st adds 1d4. Because it is a bonus action, the only other spell you can cast that turn is a cantrip &mdash; so the pairing is usually <em>Healing Word</em> plus <em>Vicious Mockery</em>.</p>
+        </div>
+      </details>
+      <details class="move">
+        <summary>Silvery Barbs <span class="cost">Reaction &middot; 60 ft</span></summary>
+        <div class="move-body">
+          <p class="meta">Trigger: a creature you can see succeeds on an attack, check or save</p>
+          <p>Make them <strong>roll the d20 again and take the lower result</strong>. Then pick a different creature you can see within 60 ft &mdash; yourself included &mdash; and it gains <strong>advantage on its next attack roll, ability check or saving throw</strong> within the next minute. Cast it on the enemy critical, the enemy save against your best spell, the ally who just needs it to land.</p>
+        </div>
+      </details>
     </section>
 
     <section class="card">
       <h2>2nd Level</h2>
-      <p class="cap">3 slots</p>
-      <ul class="lines">
-        <li><span class="dot on"></span><span class="sk-name">Gift of Gab</span></li>
-        <li><span class="dot on"></span><span class="sk-name">Cloud of Daggers <span class="ab-tag">4d4 slashing</span></span></li>
-        <li><span class="dot on"></span><span class="sk-name">Spray of Cards <span class="ab-tag">2d10 force &middot; Dex save</span></span></li>
-      </ul>
+      <p class="cap"><span data-calc="m:slots2">3</span> slots &middot; long rest</p>
+      <details class="move">
+        <summary>Gift of Gab <span class="cost">Reaction &middot; Self</span></summary>
+        <div class="move-body">
+          <p class="meta">Trigger: you finish speaking &middot; instantaneous</p>
+          <p>Take it back. Every creature within 5 ft that heard you <strong>forgets the last six seconds of what you said</strong>, and remembers instead whatever you say in the six seconds that follow. Nobody notices the edit. For the name you got wrong, the secret you let slip, the insult that landed on the wrong noble.</p>
+        </div>
+      </details>
+      <details class="move">
+        <summary>Cloud of Daggers <span class="cost">Action &middot; 60 ft</span></summary>
+        <div class="move-body">
+          <p class="meta">4d4 slashing &middot; no save, no roll &middot; concentration, up to 1 minute</p>
+          <p>A 5-foot cube fills with spinning blades. A creature takes the damage when it <strong>enters the cube for the first time on a turn or starts its turn inside it</strong>. There is no save and no attack roll &mdash; it simply happens. Put it in a doorway, or on top of something that cannot easily move. Each slot above 2nd adds 2d4.</p>
+        </div>
+      </details>
+      <details class="move">
+        <summary>Spray of Cards <span class="cost">Action &middot; 15 ft cone</span></summary>
+        <div class="move-body">
+          <p class="meta">Dex save DC <span data-calc="m:spelldc">14</span> &middot; 2d10 force &middot; instantaneous</p>
+          <p>A fan of shimmering cards bursts from your hand. Every creature in a 15-foot cone makes a Dexterity save: on a failure it takes 2d10 force and is <strong>blinded until the start of your next turn</strong>; on a success, half damage and it can still see. Her hardest-hitting spell, and it hits several at once. Each slot above 2nd adds 1d10.</p>
+        </div>
+      </details>
     </section>
 
     <section class="card">
@@ -2551,6 +2606,7 @@ function TRACKERS(SHEETS){
         else if(d.kind === "mod")  val = fmt(mod(S.scores[d.abil]));
         else if(d.kind === "prof") val = fmt(prof());
         else if(d.kind === "count") val = String(Math.max(1, mod(S.scores[d.abil])));
+        else if(d.kind === "slots") val = String(slotsAt(S.level, d.tier));
         else if(d.kind === "hd")   val = S.level + SHEET.hitDie;
         else if(d.kind === "init") val = fmt(mod(S.scores.dex) + (d.bonus || 0));
         else if(d.kind === "dmg"){
@@ -3173,7 +3229,7 @@ function TRACKERS(SHEETS){
 }
 
 try{
-  TRACKERS([{"abil": {"prof": 2, "joat": false, "scores": {"str": 16, "dex": 12, "con": 14, "int": 10, "wis": 12, "cha": 12}, "saves": ["str", "con"], "skills": [{"n": "Acrobatics", "a": "dex", "p": 1}, {"n": "Animal Handling", "a": "wis", "p": 0}, {"n": "Arcana", "a": "int", "p": 0}, {"n": "Athletics", "a": "str", "p": 1}, {"n": "Deception", "a": "cha", "p": 0}, {"n": "History", "a": "int", "p": 0}, {"n": "Insight", "a": "wis", "p": 1}, {"n": "Intimidation", "a": "cha", "p": 1}, {"n": "Investigation", "a": "int", "p": 0}, {"n": "Medicine", "a": "wis", "p": 0}, {"n": "Nature", "a": "int", "p": 0}, {"n": "Perception", "a": "wis", "p": 0}, {"n": "Performance", "a": "cha", "p": 1}, {"n": "Persuasion", "a": "cha", "p": 0}, {"n": "Religion", "a": "int", "p": 0}, {"n": "Sleight of Hand", "a": "dex", "p": 0}, {"n": "Stealth", "a": "dex", "p": 0}, {"n": "Survival", "a": "wis", "p": 0}], "derived": [{"sel": "breathdc", "kind": "dc", "abil": "con"}, {"sel": "passperc", "kind": "passive", "skill": "Perception"}, {"sel": "breathdice", "kind": "table", "steps": [[1, "2d6"], [6, "3d6"], [11, "4d6"], [16, "5d6"]]}, {"sel": "stratk", "kind": "atk", "abil": "str"}, {"sel": "strdmg", "kind": "dmg", "abil": "str"}, {"sel": "dexatk", "kind": "atk", "abil": "dex"}, {"sel": "dexdmg", "kind": "dmg", "abil": "dex"}, {"sel": "strmod", "kind": "mod", "abil": "str"}, {"sel": "hitdice", "kind": "hd"}, {"sel": "initiative", "kind": "init", "bonus": 5}, {"sel": "dexmod", "kind": "mod", "abil": "dex"}, {"sel": "profbonus", "kind": "prof"}]}, "coin": {"gp": 20, "sp": 0, "cp": 0}, "id": "alaricks", "hpMax": 24, "placeholder": "<h2>Session</h2><p class=\"cap\">Hit points &middot; resources &middot; rests</p><p>Live tracking needs JavaScript. Every number below is unaffected.</p>", "res": [{"k": "moxie", "label": "Moxie", "note": "long rest", "max": 3, "rest": "long"}, {"k": "breath", "label": "Breath Weapon", "note": "short or long rest", "max": 1, "rest": "short"}, {"k": "ward", "label": "Arcane Ward", "note": "long rest", "rest": "long", "from": "steps", "steps": [[1, 1], [5, 2], [11, 3]]}, {"k": "hd", "label": "Hit Dice", "note": "d8", "rest": "long", "from": "level"}], "ns": "a", "level": 4, "className": "Pugilist \u00b7 Squared Circle", "hitDie": "d8", "prog": [{"l": 5, "g": ["Arcane Ward adds counterspell, 2 uses per long rest"]}, {"l": 6, "g": ["Breath Weapon 3d6"]}, {"l": 11, "g": ["Arcane Ward adds death ward, 3 uses per long rest", "Breath Weapon 4d6"]}, {"l": 16, "g": ["Breath Weapon 5d6"]}], "slots": null}, {"abil": {"prof": 2, "joat": true, "scores": {"str": 8, "dex": 14, "con": 12, "int": 14, "wis": 10, "cha": 19}, "saves": ["dex", "cha"], "skills": [{"n": "Acrobatics", "a": "dex", "p": 1}, {"n": "Animal Handling", "a": "wis", "p": 0}, {"n": "Arcana", "a": "int", "p": 0}, {"n": "Athletics", "a": "str", "p": 0}, {"n": "Deception", "a": "cha", "p": 2}, {"n": "History", "a": "int", "p": 0}, {"n": "Insight", "a": "wis", "p": 0}, {"n": "Intimidation", "a": "cha", "p": 1}, {"n": "Investigation", "a": "int", "p": 0}, {"n": "Medicine", "a": "wis", "p": 0}, {"n": "Nature", "a": "int", "p": 0}, {"n": "Perception", "a": "wis", "p": 0}, {"n": "Performance", "a": "cha", "p": 2}, {"n": "Persuasion", "a": "cha", "p": 1}, {"n": "Religion", "a": "int", "p": 0}, {"n": "Sleight of Hand", "a": "dex", "p": 1}, {"n": "Stealth", "a": "dex", "p": 0}, {"n": "Survival", "a": "wis", "p": 0}], "derived": [{"sel": "spelldc", "kind": "dc", "abil": "cha"}, {"sel": "spellatk", "kind": "atk", "abil": "cha"}, {"sel": "passperc", "kind": "passive", "skill": "Perception"}, {"sel": "dexatk", "kind": "atk", "abil": "dex"}, {"sel": "hitdice", "kind": "hd"}, {"sel": "initiative", "kind": "init"}, {"sel": "chamod", "kind": "mod", "abil": "cha"}, {"sel": "chacount", "kind": "count", "abil": "cha"}, {"sel": "bardie", "kind": "table", "steps": [[1, "d6"], [5, "d8"], [10, "d10"], [15, "d12"]]}, {"sel": "vmdice", "kind": "table", "steps": [[1, "1d4"], [5, "2d4"], [11, "3d4"], [17, "4d4"]]}, {"sel": "dexdmg", "kind": "dmg", "abil": "dex"}, {"sel": "dexmod", "kind": "mod", "abil": "dex"}, {"sel": "profbonus", "kind": "prof"}]}, "coin": {"gp": 100, "sp": 10, "cp": 30}, "id": "mina", "hpMax": 27, "placeholder": "<h2>Session</h2><p class=\"cap\">Hit points &middot; resources &middot; rests</p><p>Live tracking needs JavaScript. Every number below is unaffected.</p>", "res": [{"k": "bardic", "label": "Bardic Inspiration", "note": "long rest", "rest": "long", "from": "abil", "abil": "cha", "die": [[1, "d6"], [5, "d8"], [10, "d10"], [15, "d12"]]}, {"k": "slot1", "label": "1st-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 1}, {"k": "slot2", "label": "2nd-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 2}, {"k": "slot3", "label": "3rd-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 3}, {"k": "slot4", "label": "4th-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 4}, {"k": "slot5", "label": "5th-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 5}, {"k": "ward", "label": "Arcane Ward", "note": "long rest", "max": 1, "rest": "long"}, {"k": "leader", "label": "Inspiring Leader", "note": "short or long rest", "max": 1, "rest": "short"}, {"k": "hd", "label": "Hit Dice", "note": "d8", "rest": "long", "from": "level"}], "ns": "m", "level": 4, "className": "Bard \u00b7 College of Lore", "hitDie": "d8", "prog": [{"l": 1, "g": ["Spellcasting", "Bardic Inspiration (d6)"]}, {"l": 2, "g": ["Jack of All Trades", "Song of Rest (d6)"]}, {"l": 3, "g": ["Bard College: Lore", "Bonus Proficiencies (3 skills)", "Cutting Words", "Expertise (2 skills)"]}, {"l": 4, "g": ["Ability Score Improvement", "A fourth cantrip"]}, {"l": 5, "g": ["Bardic Inspiration (d8)", "Font of Inspiration \u2014 regain on a short rest"]}, {"l": 6, "g": ["Countercharm", "Additional Magical Secrets (2 spells)"]}, {"l": 8, "g": ["Ability Score Improvement"]}, {"l": 9, "g": ["Song of Rest (d8)"]}, {"l": 10, "g": ["Bardic Inspiration (d10)", "Expertise (2 more skills)", "Magical Secrets (2 spells)", "A fifth cantrip"]}, {"l": 12, "g": ["Ability Score Improvement"]}, {"l": 13, "g": ["Song of Rest (d10)"]}, {"l": 14, "g": ["Magical Secrets (2 spells)", "Peerless Skill"]}, {"l": 15, "g": ["Bardic Inspiration (d12)"]}, {"l": 16, "g": ["Ability Score Improvement"]}, {"l": 17, "g": ["Song of Rest (d12)"]}, {"l": 18, "g": ["Magical Secrets (2 spells)"]}, {"l": 19, "g": ["Ability Score Improvement"]}, {"l": 20, "g": ["Superior Inspiration"]}], "slots": [[2, 0, 0, 0, 0, 0, 0, 0, 0], [3, 0, 0, 0, 0, 0, 0, 0, 0], [4, 2, 0, 0, 0, 0, 0, 0, 0], [4, 3, 0, 0, 0, 0, 0, 0, 0], [4, 3, 2, 0, 0, 0, 0, 0, 0], [4, 3, 3, 0, 0, 0, 0, 0, 0], [4, 3, 3, 1, 0, 0, 0, 0, 0], [4, 3, 3, 2, 0, 0, 0, 0, 0], [4, 3, 3, 3, 1, 0, 0, 0, 0], [4, 3, 3, 3, 2, 0, 0, 0, 0], [4, 3, 3, 3, 2, 1, 0, 0, 0], [4, 3, 3, 3, 2, 1, 0, 0, 0], [4, 3, 3, 3, 2, 1, 1, 0, 0], [4, 3, 3, 3, 2, 1, 1, 0, 0], [4, 3, 3, 3, 2, 1, 1, 1, 0], [4, 3, 3, 3, 2, 1, 1, 1, 0], [4, 3, 3, 3, 2, 1, 1, 1, 1], [4, 3, 3, 3, 3, 1, 1, 1, 1], [4, 3, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 3, 2, 2, 1, 1]]}]);
+  TRACKERS([{"abil": {"prof": 2, "joat": false, "scores": {"str": 16, "dex": 12, "con": 14, "int": 10, "wis": 12, "cha": 12}, "saves": ["str", "con"], "skills": [{"n": "Acrobatics", "a": "dex", "p": 1}, {"n": "Animal Handling", "a": "wis", "p": 0}, {"n": "Arcana", "a": "int", "p": 0}, {"n": "Athletics", "a": "str", "p": 1}, {"n": "Deception", "a": "cha", "p": 0}, {"n": "History", "a": "int", "p": 0}, {"n": "Insight", "a": "wis", "p": 1}, {"n": "Intimidation", "a": "cha", "p": 1}, {"n": "Investigation", "a": "int", "p": 0}, {"n": "Medicine", "a": "wis", "p": 0}, {"n": "Nature", "a": "int", "p": 0}, {"n": "Perception", "a": "wis", "p": 0}, {"n": "Performance", "a": "cha", "p": 1}, {"n": "Persuasion", "a": "cha", "p": 0}, {"n": "Religion", "a": "int", "p": 0}, {"n": "Sleight of Hand", "a": "dex", "p": 0}, {"n": "Stealth", "a": "dex", "p": 0}, {"n": "Survival", "a": "wis", "p": 0}], "derived": [{"sel": "breathdc", "kind": "dc", "abil": "con"}, {"sel": "passperc", "kind": "passive", "skill": "Perception"}, {"sel": "breathdice", "kind": "table", "steps": [[1, "2d6"], [6, "3d6"], [11, "4d6"], [16, "5d6"]]}, {"sel": "stratk", "kind": "atk", "abil": "str"}, {"sel": "strdmg", "kind": "dmg", "abil": "str"}, {"sel": "dexatk", "kind": "atk", "abil": "dex"}, {"sel": "dexdmg", "kind": "dmg", "abil": "dex"}, {"sel": "strmod", "kind": "mod", "abil": "str"}, {"sel": "hitdice", "kind": "hd"}, {"sel": "initiative", "kind": "init", "bonus": 5}, {"sel": "dexmod", "kind": "mod", "abil": "dex"}, {"sel": "profbonus", "kind": "prof"}]}, "coin": {"gp": 20, "sp": 0, "cp": 0}, "id": "alaricks", "hpMax": 24, "placeholder": "<h2>Session</h2><p class=\"cap\">Hit points &middot; resources &middot; rests</p><p>Live tracking needs JavaScript. Every number below is unaffected.</p>", "res": [{"k": "moxie", "label": "Moxie", "note": "long rest", "max": 3, "rest": "long"}, {"k": "breath", "label": "Breath Weapon", "note": "short or long rest", "max": 1, "rest": "short"}, {"k": "ward", "label": "Arcane Ward", "note": "long rest", "rest": "long", "from": "steps", "steps": [[1, 1], [5, 2], [11, 3]]}, {"k": "hd", "label": "Hit Dice", "note": "d8", "rest": "long", "from": "level"}], "ns": "a", "level": 4, "className": "Pugilist \u00b7 Squared Circle", "hitDie": "d8", "prog": [{"l": 5, "g": ["Arcane Ward adds counterspell, 2 uses per long rest"]}, {"l": 6, "g": ["Breath Weapon 3d6"]}, {"l": 11, "g": ["Arcane Ward adds death ward, 3 uses per long rest", "Breath Weapon 4d6"]}, {"l": 16, "g": ["Breath Weapon 5d6"]}], "slots": null}, {"abil": {"prof": 2, "joat": true, "scores": {"str": 8, "dex": 14, "con": 12, "int": 14, "wis": 10, "cha": 19}, "saves": ["dex", "cha"], "skills": [{"n": "Acrobatics", "a": "dex", "p": 1}, {"n": "Animal Handling", "a": "wis", "p": 0}, {"n": "Arcana", "a": "int", "p": 0}, {"n": "Athletics", "a": "str", "p": 0}, {"n": "Deception", "a": "cha", "p": 2}, {"n": "History", "a": "int", "p": 0}, {"n": "Insight", "a": "wis", "p": 0}, {"n": "Intimidation", "a": "cha", "p": 1}, {"n": "Investigation", "a": "int", "p": 0}, {"n": "Medicine", "a": "wis", "p": 0}, {"n": "Nature", "a": "int", "p": 0}, {"n": "Perception", "a": "wis", "p": 0}, {"n": "Performance", "a": "cha", "p": 2}, {"n": "Persuasion", "a": "cha", "p": 1}, {"n": "Religion", "a": "int", "p": 0}, {"n": "Sleight of Hand", "a": "dex", "p": 1}, {"n": "Stealth", "a": "dex", "p": 0}, {"n": "Survival", "a": "wis", "p": 0}], "derived": [{"sel": "spelldc", "kind": "dc", "abil": "cha"}, {"sel": "spellatk", "kind": "atk", "abil": "cha"}, {"sel": "passperc", "kind": "passive", "skill": "Perception"}, {"sel": "dexatk", "kind": "atk", "abil": "dex"}, {"sel": "hitdice", "kind": "hd"}, {"sel": "initiative", "kind": "init"}, {"sel": "chamod", "kind": "mod", "abil": "cha"}, {"sel": "chacount", "kind": "count", "abil": "cha"}, {"sel": "slots1", "kind": "slots", "tier": 1}, {"sel": "slots2", "kind": "slots", "tier": 2}, {"sel": "bardie", "kind": "table", "steps": [[1, "d6"], [5, "d8"], [10, "d10"], [15, "d12"]]}, {"sel": "vmdice", "kind": "table", "steps": [[1, "1d4"], [5, "2d4"], [11, "3d4"], [17, "4d4"]]}, {"sel": "dexdmg", "kind": "dmg", "abil": "dex"}, {"sel": "dexmod", "kind": "mod", "abil": "dex"}, {"sel": "profbonus", "kind": "prof"}]}, "coin": {"gp": 100, "sp": 10, "cp": 30}, "id": "mina", "hpMax": 27, "placeholder": "<h2>Session</h2><p class=\"cap\">Hit points &middot; resources &middot; rests</p><p>Live tracking needs JavaScript. Every number below is unaffected.</p>", "res": [{"k": "bardic", "label": "Bardic Inspiration", "note": "long rest", "rest": "long", "from": "abil", "abil": "cha", "die": [[1, "d6"], [5, "d8"], [10, "d10"], [15, "d12"]]}, {"k": "slot1", "label": "1st-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 1}, {"k": "slot2", "label": "2nd-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 2}, {"k": "slot3", "label": "3rd-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 3}, {"k": "slot4", "label": "4th-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 4}, {"k": "slot5", "label": "5th-level slots", "note": "long rest", "rest": "long", "from": "slot", "tier": 5}, {"k": "ward", "label": "Arcane Ward", "note": "long rest", "max": 1, "rest": "long"}, {"k": "leader", "label": "Inspiring Leader", "note": "short or long rest", "max": 1, "rest": "short"}, {"k": "hd", "label": "Hit Dice", "note": "d8", "rest": "long", "from": "level"}], "ns": "m", "level": 4, "className": "Bard \u00b7 College of Lore", "hitDie": "d8", "prog": [{"l": 1, "g": ["Spellcasting", "Bardic Inspiration (d6)"]}, {"l": 2, "g": ["Jack of All Trades", "Song of Rest (d6)"]}, {"l": 3, "g": ["Bard College: Lore", "Bonus Proficiencies (3 skills)", "Cutting Words", "Expertise (2 skills)"]}, {"l": 4, "g": ["Ability Score Improvement", "A fourth cantrip"]}, {"l": 5, "g": ["Bardic Inspiration (d8)", "Font of Inspiration \u2014 regain on a short rest"]}, {"l": 6, "g": ["Countercharm", "Additional Magical Secrets (2 spells)"]}, {"l": 8, "g": ["Ability Score Improvement"]}, {"l": 9, "g": ["Song of Rest (d8)"]}, {"l": 10, "g": ["Bardic Inspiration (d10)", "Expertise (2 more skills)", "Magical Secrets (2 spells)", "A fifth cantrip"]}, {"l": 12, "g": ["Ability Score Improvement"]}, {"l": 13, "g": ["Song of Rest (d10)"]}, {"l": 14, "g": ["Magical Secrets (2 spells)", "Peerless Skill"]}, {"l": 15, "g": ["Bardic Inspiration (d12)"]}, {"l": 16, "g": ["Ability Score Improvement"]}, {"l": 17, "g": ["Song of Rest (d12)"]}, {"l": 18, "g": ["Magical Secrets (2 spells)"]}, {"l": 19, "g": ["Ability Score Improvement"]}, {"l": 20, "g": ["Superior Inspiration"]}], "slots": [[2, 0, 0, 0, 0, 0, 0, 0, 0], [3, 0, 0, 0, 0, 0, 0, 0, 0], [4, 2, 0, 0, 0, 0, 0, 0, 0], [4, 3, 0, 0, 0, 0, 0, 0, 0], [4, 3, 2, 0, 0, 0, 0, 0, 0], [4, 3, 3, 0, 0, 0, 0, 0, 0], [4, 3, 3, 1, 0, 0, 0, 0, 0], [4, 3, 3, 2, 0, 0, 0, 0, 0], [4, 3, 3, 3, 1, 0, 0, 0, 0], [4, 3, 3, 3, 2, 0, 0, 0, 0], [4, 3, 3, 3, 2, 1, 0, 0, 0], [4, 3, 3, 3, 2, 1, 0, 0, 0], [4, 3, 3, 3, 2, 1, 1, 0, 0], [4, 3, 3, 3, 2, 1, 1, 0, 0], [4, 3, 3, 3, 2, 1, 1, 1, 0], [4, 3, 3, 3, 2, 1, 1, 1, 0], [4, 3, 3, 3, 2, 1, 1, 1, 1], [4, 3, 3, 3, 3, 1, 1, 1, 1], [4, 3, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 3, 2, 2, 1, 1]]}]);
 }catch(err){
   var mounts = document.querySelectorAll('[id^="session-"]');
   for(var z=0; z<mounts.length; z++){
